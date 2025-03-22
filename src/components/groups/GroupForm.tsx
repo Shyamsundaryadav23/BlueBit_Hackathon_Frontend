@@ -4,14 +4,13 @@ import { Users, Mail, Info, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import CustomButton from '../ui/CustomButton';
 import { toast } from 'sonner';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials, getRandomId } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import CustomButton from '../ui/CustomButton';
 import { mockUsers } from '@/utils/mockData';
-
+import { Button } from '@/components/ui/button';
 
 interface MemberInput {
   id: string;

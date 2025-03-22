@@ -37,7 +37,7 @@ import { detectUserCurrency } from "@/utils/locationUtils";
 
 interface ExpenseFormProps {
   group: Group;
-  onSave: (receiptImage?: string) => void;
+  onSave: (expense: any) => void;
   onCancel: () => void;
   selectedImage?: string | null;
   onUploadReceipt?: () => void;
@@ -63,18 +63,20 @@ const ExpenseForm = ({
   onUploadReceipt,
 }: ExpenseFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  // PaidBy is already stored in state
   const [paidBy, setPaidBy] = useState(group.members[0].id);
+  // Add state for selected category
+  const [selectedCategory, setSelectedCategory] =
+    useState<ExpenseCategory>("food");
   const [splitEqually, setSplitEqually] = useState(true);
   const [currency, setCurrency] = useState({ code: "USD", symbol: "$" });
   const [isDetectingLocation, setIsDetectingLocation] = useState(true);
-  const [showEmailOptions, setShowEmailOptions] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [receiptImage, setReceiptImage] = useState<string | null>(
     selectedImage
   );
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Detect user's currency based on geolocation when the component mounts
     const detectCurrency = async () => {
       try {
         setIsDetectingLocation(true);
@@ -90,7 +92,6 @@ const ExpenseForm = ({
         setIsDetectingLocation(false);
       }
     };
-
     detectCurrency();
   }, []);
 
@@ -105,28 +106,101 @@ const ExpenseForm = ({
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // In a real app, you would upload this to storage
-      // For this example, we'll use a local URL
       const imageUrl = URL.createObjectURL(file);
+      console.log("Receipt image selected:", imageUrl);
       setReceiptImage(imageUrl);
-
-      // Show a toast notification
-      toast.success("Receipt uploaded", {
-        description: "Your receipt has been attached to this expense",
+      toast.success("Receipt uploaded successfully", {
+        description: "Your receipt image has been attached to the expense",
       });
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate saving
-    setTimeout(() => {
+    // FormData now picks up our hidden inputs
+    const formData = new FormData(e.currentTarget);
+
+    // Basic form data
+    const expenseName = formData.get("expense-name") as string;
+    const amount = parseFloat(formData.get("amount") as string);
+    const date = new Date(formData.get("date") as string);
+    // These values will now be provided via hidden inputs:
+    const category = formData.get("category") as ExpenseCategory;
+    const paidByValue = formData.get("paidBy") as string;
+    const splitEquallyValue = formData.get("splitEqually") === "true";
+
+    console.log("FormData values:", {
+      expenseName,
+      amount,
+      date,
+      category,
+      paidByValue,
+      splitEquallyValue,
+    });
+
+    // Validate required fields
+    if (!expenseName || isNaN(amount) || !date || !category || !paidByValue) {
+      toast.error("Please fill in all required fields");
       setIsLoading(false);
+      return;
+    }
+
+    // Process splits for each group member
+    const splits = group.members.map((member) => {
+      const memberSplit = splitEquallyValue
+        ? parseFloat((amount / group.members.length).toFixed(2))
+        : parseFloat(formData.get(`split-${member.id}`) as string);
+      return {
+        memberId: member.id,
+        amount: memberSplit,
+        paid: member.id === paidByValue,
+      };
+    });
+
+    // Construct expense object
+    const expenseData = {
+      ExpenseID: `exp-${Date.now()}`,
+      name: expenseName,
+      amount,
+      date: date.toISOString(),
+      category,
+      currency: currency.code,
+      groupId: group.id,
+      paidBy: paidByValue,
+      splits,
+      description: (formData.get("description") as string) || undefined,
+      receiptImage: receiptImage || undefined,
+    };
+
+    console.log("Constructed expenseData:", expenseData);
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_APP_API_URL}/api/expenses`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify(expenseData),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to create expense");
+
+      const createdExpense = await response.json();
+      console.log("Expense created:", createdExpense);
+      onSave(createdExpense.expense);
       toast.success("Expense added successfully");
-      onSave(receiptImage || undefined);
-    }, 1000);
+    } catch (error: any) {
+      console.error("Error saving expense:", error);
+      toast.error(error.message || "Failed to save expense");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -135,6 +209,7 @@ const ExpenseForm = ({
         <CardTitle className="text-xl">Add New Expense</CardTitle>
       </CardHeader>
       <CardContent>
+        {/* The form element wraps all inputs including our hidden ones */}
         <form
           onSubmit={handleSubmit}
           className="grid grid-cols-1 md:grid-cols-2 gap-4"
@@ -146,6 +221,7 @@ const ExpenseForm = ({
               <Hash className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
               <Input
                 id="expense-name"
+                name="expense-name"
                 placeholder="Dinner, Movie Tickets, etc."
                 className="pl-10"
                 required
@@ -168,6 +244,7 @@ const ExpenseForm = ({
               </div>
               <Input
                 id="amount"
+                name="amount"
                 type="number"
                 min="0"
                 step="0.01"
@@ -185,6 +262,7 @@ const ExpenseForm = ({
               <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
               <Input
                 id="date"
+                name="date"
                 type="date"
                 defaultValue={new Date().toISOString().slice(0, 10)}
                 className="pl-10"
@@ -196,19 +274,20 @@ const ExpenseForm = ({
           {/* Category */}
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
-            <Select defaultValue="food">
-              <SelectTrigger id="category" className="w-full">
+            <Select
+              value={selectedCategory}
+              onValueChange={(value) =>
+                setSelectedCategory(value as ExpenseCategory)
+              }
+            >
+              <SelectTrigger id="category">
                 <Tag className="mr-2 h-4 w-4 text-muted-foreground" />
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem
-                    key={category}
-                    value={category}
-                    className="capitalize"
-                  >
-                    {category}
+                {categories.map((cat) => (
+                  <SelectItem key={cat} value={cat} className="capitalize">
+                    {cat}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -219,7 +298,7 @@ const ExpenseForm = ({
           <div className="space-y-2">
             <Label htmlFor="paidBy">Paid By</Label>
             <Select value={paidBy} onValueChange={setPaidBy}>
-              <SelectTrigger id="paidBy" className="w-full">
+              <SelectTrigger id="paidBy">
                 <Users className="mr-2 h-4 w-4 text-muted-foreground" />
                 <SelectValue placeholder="Select who paid" />
               </SelectTrigger>
@@ -241,6 +320,10 @@ const ExpenseForm = ({
             </Select>
           </div>
 
+          {/* Hidden inputs for category and paidBy */}
+          <input type="hidden" name="category" value={selectedCategory} />
+          <input type="hidden" name="paidBy" value={paidBy} />
+
           {/* Receipt Image */}
           <div className="space-y-2 md:col-span-2">
             <div className="flex items-center justify-between">
@@ -254,19 +337,20 @@ const ExpenseForm = ({
                 <ImageIcon className="mr-2 h-4 w-4" />
                 Upload Receipt
               </Button>
+              {/* Adding a name here is optional if you want it in the formData */}
               <input
                 type="file"
+                name="receipt"
                 ref={fileInputRef}
                 className="hidden"
                 accept="image/*"
                 onChange={handleImageChange}
               />
             </div>
-
-            {(receiptImage || selectedImage) && (
+            {receiptImage && (
               <div className="mt-2 border rounded-md overflow-hidden">
                 <img
-                  src={receiptImage || selectedImage || ""}
+                  src={receiptImage}
                   alt="Receipt"
                   className="w-full h-auto max-h-40 object-contain"
                 />
@@ -284,6 +368,7 @@ const ExpenseForm = ({
               <FileText className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
               <Textarea
                 id="description"
+                name="description"
                 placeholder="Add notes or details about this expense"
                 className="pl-10 min-h-24"
               />
@@ -292,16 +377,12 @@ const ExpenseForm = ({
 
           <Separator className="md:col-span-2" />
 
-          {/* Split Equally */}
-          <div className="flex items-center justify-between md:col-span-2">
-            <div className="space-y-0.5">
-              <h3 className="font-medium">Split Equally</h3>
-              <p className="text-sm text-muted-foreground">
-                Divide the expense equally among all members
-              </p>
-            </div>
-            <Switch checked={splitEqually} onCheckedChange={setSplitEqually} />
-          </div>
+          {/* Hidden splitEqually input */}
+          <input
+            type="hidden"
+            name="splitEqually"
+            value={splitEqually.toString()}
+          />
 
           {/* Split Between Members */}
           <div className="space-y-3 md:col-span-2">
@@ -323,7 +404,6 @@ const ExpenseForm = ({
                     </p>
                   </div>
                 </div>
-
                 {!splitEqually ? (
                   <div className="relative w-24">
                     <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -331,8 +411,10 @@ const ExpenseForm = ({
                       type="number"
                       min="0"
                       step="0.01"
+                      name={`split-${member.id}`}
                       className="pl-8"
                       placeholder="0.00"
+                      required
                     />
                   </div>
                 ) : (
@@ -344,53 +426,15 @@ const ExpenseForm = ({
             ))}
           </div>
 
-          {/* Email Notifications */}
-          <div className="pt-2 md:col-span-2">
-            <div className="flex items-center justify-between mb-2">
-              <div className="space-y-0.5">
-                <h3 className="font-medium">Email Notifications</h3>
-                <p className="text-sm text-muted-foreground">
-                  Notify group members about this expense
-                </p>
-              </div>
-              <Switch
-                checked={showEmailOptions}
-                onCheckedChange={setShowEmailOptions}
-                defaultChecked
-              />
-            </div>
-
-            {showEmailOptions && (
-              <div className="mt-2 p-3 bg-muted/40 rounded-md">
-                <p className="text-sm text-muted-foreground mb-2">
-                  Email notifications will be sent to:
-                </p>
-                <div className="space-y-2">
-                  {group.members.map((member) => (
-                    <div key={member.id} className="flex items-center">
-                      <Avatar className="h-6 w-6 mr-2">
-                        <AvatarImage src={member.avatar} />
-                        <AvatarFallback>
-                          {getInitials(member.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">{member.email}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+          {/* Submit button inside the form */}
+          <div className="md:col-span-2 flex justify-end">
+            <CustomButton type="submit" isLoading={isLoading}>
+              Save Expense
+            </CustomButton>
           </div>
         </form>
       </CardContent>
-      <CardFooter className="flex justify-end space-x-2">
-        <CustomButton variant="outline" onClick={onCancel} disabled={isLoading}>
-          Cancel
-        </CustomButton>
-        <CustomButton onClick={handleSubmit} isLoading={isLoading}>
-          Save Expense
-        </CustomButton>
-      </CardFooter>
+      <CardFooter className="hidden" />
     </Card>
   );
 };

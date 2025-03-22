@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Users, Mail, Info, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -11,7 +10,6 @@ import { getInitials, getRandomId } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import CustomButton from '../ui/CustomButton';
 import { mockUsers } from '@/utils/mockData';
-
 
 interface MemberInput {
   id: string;
@@ -51,20 +49,61 @@ const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
     ));
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate saving
-    setTimeout(() => {
+    // Construct the group data from the form values.
+    const groupData = {
+      GroupID: getRandomId(), // Generate a unique GroupID.
+      name: (document.getElementById("group-name") as HTMLInputElement)?.value,
+      description: (document.getElementById("description") as HTMLTextAreaElement)?.value || "",
+      members: members.map(member => ({
+        id: member.id,
+        email: member.email,
+        name: member.name,
+        avatar: member.avatar
+      })),
+      createdAt: new Date().toISOString()
+    };
+
+    // Debug: Print API URL and groupData to console.
+    const apiUrl = `${import.meta.env.VITE_APP_API_URL}/api/groups`;
+    console.log('API URL:', apiUrl);
+    console.log('Group Data:', groupData);
+  
+    try {
+      const token = localStorage.getItem('token'); // Or get it from your auth context.
+      console.log('Token:', token);
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(groupData)
+      });
+      
+      const result = await response.json();
+      console.log('API Response:', result);
+      
+      if (response.ok) {
+        toast.success(result.message || 'Group created successfully');
+        onSave(); // Notify parent (Groups) that saving is complete.
+      } else {
+        toast.error(result.error || 'Failed to create group');
+      }
+    } catch (error) {
+      console.error('Error during API call:', error);
+      toast.error('An error occurred while creating the group');
+    } finally {
       setIsLoading(false);
-      toast.success('Group created successfully');
-      onSave();
-    }, 1000);
+    }
   };
   
   return (
-    <Card className="border-none shadow-subtle">
+    <Card className="bg-white border-none shadow-subtle">
       <CardHeader>
         <CardTitle className="text-xl">Create New Group</CardTitle>
       </CardHeader>

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { PlusCircle } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
@@ -17,9 +16,11 @@ const Groups = () => {
   const openForm = () => setIsFormOpen(true);
   const closeForm = () => setIsFormOpen(false);
   
+  // This handler is called after GroupForm successfully creates a group.
+  // You can update your groups state here if desired.
   const handleCreateGroup = () => {
     closeForm();
-    // In a real app, we would fetch updated groups
+    // Optionally, fetch updated groups from the backend.
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);

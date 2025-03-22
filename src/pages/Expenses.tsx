@@ -39,15 +39,21 @@ const Expenses = () => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(
-    null
-  );
+  const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const openForm = () => setIsFormOpen(true);
-  const closeForm = () => setIsFormOpen(false);
+  const openForm = () => {
+    console.log("Opening expense form");
+    setIsFormOpen(true);
+  };
+  const closeForm = () => {
+    console.log("Closing expense form");
+    setIsFormOpen(false);
+  };
 
   const handleCreateExpense = (receiptImage?: string) => {
+    console.log("handleCreateExpense called with receiptImage:", receiptImage);
     closeForm();
     setIsLoading(true);
     setTimeout(() => {
@@ -58,9 +64,15 @@ const Expenses = () => {
         receiptImage: receiptImage || null,
       };
 
+      console.log("New expense created:", newExpense);
       setExpenses([newExpense, ...expenses]);
       applyFilters(searchTerm, groupFilter);
       setIsLoading(false);
+
+      setSuccessMessage("Expense added successfully");
+      setTimeout(() => {
+        setSuccessMessage("");
+      }, 2000);
 
       if (newExpense.groupId !== "personal") {
         const group = mockGroups.find((g) => g.id === newExpense.groupId);
@@ -72,6 +84,7 @@ const Expenses = () => {
   };
 
   const simulateSendNotifications = (group: any, expense: any) => {
+    console.log("Simulating notifications for group:", group, "and expense:", expense);
     const memberCount = group.members.length;
     toast.success(`Sending expense notifications to ${memberCount} members`, {
       duration: 3000,
@@ -81,6 +94,7 @@ const Expenses = () => {
     group.members.forEach((member: any) => {
       if (member.id !== expense.paidBy) {
         setTimeout(() => {
+          console.log(`Notification sent to ${member.name}`);
           toast.success(`Email notification sent to ${member.name}`, {
             description: `For ${expense.name} expense of $${expense.amount}`,
             duration: 3000,
@@ -92,17 +106,20 @@ const Expenses = () => {
   };
 
   const handleFilterChange = (groupId: string) => {
+    console.log("Filter changed to group:", groupId);
     setGroupFilter(groupId);
     applyFilters(searchTerm, groupId);
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
+    console.log("Search term changed to:", value);
     setSearchTerm(value);
     applyFilters(value, groupFilter);
   };
 
   const applyFilters = (search: string, group: string) => {
+    console.log("Applying filters with search:", search, "and group:", group);
     let filtered = [...expenses];
 
     if (group !== "all") {
@@ -118,6 +135,7 @@ const Expenses = () => {
       );
     }
 
+    console.log("Filtered expenses:", filtered);
     setFilteredExpenses(filtered);
   };
 
@@ -131,8 +149,8 @@ const Expenses = () => {
     const file = e.target.files?.[0];
     if (file) {
       const imageUrl = URL.createObjectURL(file);
+      console.log("Receipt image selected:", imageUrl);
       setSelectedImage(imageUrl);
-
       toast.success("Receipt uploaded successfully", {
         description: "Your receipt image has been attached to the expense",
       });
@@ -140,11 +158,13 @@ const Expenses = () => {
   };
 
   const handleProceedToPayment = (expenseId: string) => {
+    console.log("Proceeding to payment for expense:", expenseId);
     setSelectedExpenseId(expenseId);
     setPaymentModalOpen(true);
   };
 
   const processPayment = () => {
+    console.log("Processing payment for expense:", selectedExpenseId);
     setIsLoading(true);
 
     setTimeout(() => {
@@ -163,6 +183,7 @@ const Expenses = () => {
       return;
     }
 
+    console.log("Sending invite to:", inviteEmail);
     setIsLoading(true);
 
     setTimeout(() => {
@@ -178,6 +199,13 @@ const Expenses = () => {
 
   return (
     <AppLayout>
+      {/* Green Success Label */}
+      {successMessage && (
+        <div className="bg-green-500 text-white p-2 text-center mb-4">
+          {successMessage}
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-semibold tracking-tight">Expenses</h1>
         <div className="flex gap-2">
@@ -198,7 +226,10 @@ const Expenses = () => {
 
       <Tabs
         value={selectedTab}
-        onValueChange={setSelectedTab}
+        onValueChange={(val) => {
+          console.log("Selected tab changed to:", val);
+          setSelectedTab(val);
+        }}
         className="w-full mb-6"
       >
         <TabsList className="grid w-full grid-cols-2">
@@ -248,8 +279,7 @@ const Expenses = () => {
                   key={expense.id}
                   expense={expense}
                   members={
-                    mockGroups.find((g) => g.id === expense.groupId)?.members ||
-                    []
+                    mockGroups.find((g) => g.id === expense.groupId)?.members || []
                   }
                   onPaymentClick={() => handleProceedToPayment(expense.id)}
                 />
@@ -287,8 +317,16 @@ const Expenses = () => {
       </Tabs>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[600px] p-0 bg-white dark:bg-gray-900 shadow-lg rounded-lg">
+        {/* Added aria-describedby to satisfy Radix DialogContent requirements */}
+        <DialogContent
+          aria-describedby="expense-form-description"
+          className="sm:max-w-[600px] p-0 bg-white dark:bg-gray-900 shadow-lg rounded-lg"
+        >
           <DialogTitle className="sr-only">Add New Expense</DialogTitle>
+          {/* Optionally add a description element */}
+          <p id="expense-form-description" className="sr-only">
+            Fill out the form to add a new expense.
+          </p>
           <div className="p-6">
             <ExpenseForm
               group={mockGroups[0]}
@@ -302,8 +340,14 @@ const Expenses = () => {
       </Dialog>
 
       <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent
+          aria-describedby="payment-dialog-description"
+          className="sm:max-w-[500px]"
+        >
           <DialogTitle className="sr-only">Complete Payment</DialogTitle>
+          <p id="payment-dialog-description" className="sr-only">
+            Choose your preferred payment method.
+          </p>
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold mb-2">Complete Payment</h2>
@@ -405,8 +449,14 @@ const Expenses = () => {
       </Dialog>
 
       <Dialog open={inviteModalOpen} onOpenChange={setInviteModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent
+          aria-describedby="invite-dialog-description"
+          className="sm:max-w-[500px]"
+        >
           <DialogTitle className="sr-only">Invite Member</DialogTitle>
+          <p id="invite-dialog-description" className="sr-only">
+            Send an invitation to join your expense group.
+          </p>
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold mb-2">Invite Member</h2>
@@ -443,9 +493,7 @@ const Expenses = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Message (Optional)
-                </label>
+                <label className="text-sm font-medium">Message (Optional)</label>
                 <Input placeholder="Join our expense group for the trip!" />
               </div>
             </div>

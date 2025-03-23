@@ -1,3 +1,4 @@
+// src/components/expenses/ExpenseForm.tsx
 import { useState, useRef, useEffect } from "react";
 import {
   Calendar,
@@ -22,7 +23,6 @@ import {
 } from "@/components/ui/select";
 import { ExpenseCategory, Group, Member } from "@/utils/mockData";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Switch } from "@/components/ui/switch";
 import { getInitials } from "@/lib/utils";
 import {
   Card,
@@ -55,6 +55,8 @@ const categories: ExpenseCategory[] = [
   "other",
 ];
 
+type SplitMethod = "equal" | "percentage" | "manual";
+
 const ExpenseForm = ({
   group,
   onSave,
@@ -63,24 +65,57 @@ const ExpenseForm = ({
   onUploadReceipt,
 }: ExpenseFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [paidBy, setPaidBy] = useState(group.members[0].id);
+  // Safely initialize paidBy; if no member exists, default to an empty string.
+  const [paidBy, setPaidBy] = useState(
+    (group.members && group.members.length > 0 && group.members[0].id) || ""
+  );
   const [selectedCategory, setSelectedCategory] =
     useState<ExpenseCategory>("food");
-  const [splitEqually, setSplitEqually] = useState(true);
+  const [splitMethod, setSplitMethod] = useState<SplitMethod>("equal");
+  const [expenseAmount, setExpenseAmount] = useState("");
+  // For percentage/manual splits, store values per member as strings.
+  const [splitPercentages, setSplitPercentages] = useState<{ [key: string]: string }>({});
+  const [splitAmounts, setSplitAmounts] = useState<{ [key: string]: string }>({});
   const [currency, setCurrency] = useState({ code: "USD", symbol: "$" });
   const [isDetectingLocation, setIsDetectingLocation] = useState(true);
   const [receiptImage, setReceiptImage] = useState<string | null>(selectedImage);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Debug: Log received group details and fetch full group data from API.
+  useEffect(() => {
+    console.log("ExpenseForm: Received group prop:", group);
+    if (group && group.id) {
+      fetch(`${import.meta.env.VITE_APP_API_URL}/api/groups/${group.id}`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("Fetched group details from API:", data);
+          if (data.members && data.members.length > 0) {
+            data.members.forEach((member: any) => {
+              console.log("Member email:", member.email);
+            });
+          } else {
+            console.log("Group has no members (from API).");
+          }
+        })
+        .catch((err) => console.error("Error fetching group details:", err));
+    } else {
+      console.log("No valid group provided to ExpenseForm");
+    }
+  }, [group]);
+
+  // Detect user currency on mount.
   useEffect(() => {
     const detectCurrency = async () => {
       try {
         setIsDetectingLocation(true);
         const detectedCurrency = await detectUserCurrency();
         setCurrency(detectedCurrency);
-        toast.success(
-          `Currency set to ${detectedCurrency.code} based on your location`
-        );
+        toast.success(`Currency set to ${detectedCurrency.code} based on your location`);
       } catch (error) {
         console.error("Failed to detect currency:", error);
         toast.error("Could not detect your location. Using default currency.");
@@ -91,14 +126,30 @@ const ExpenseForm = ({
     detectCurrency();
   }, []);
 
-  // Trigger file input click
+  // Update equal splits when expenseAmount changes (for equal split method).
+  useEffect(() => {
+    if (group.members.length > 0 && expenseAmount && splitMethod === "equal") {
+      const amt = parseFloat(expenseAmount);
+      const equalPercentage = (100 / group.members.length).toFixed(2);
+      const equalAmount = (amt / group.members.length).toFixed(2);
+      const newPercentages: { [key: string]: string } = {};
+      const newAmounts: { [key: string]: string } = {};
+      group.members.forEach((member) => {
+        newPercentages[member.id] = equalPercentage;
+        newAmounts[member.id] = equalAmount;
+      });
+      setSplitPercentages(newPercentages);
+      setSplitAmounts(newAmounts);
+      console.log("Equal splits updated:", newPercentages, newAmounts);
+    }
+  }, [expenseAmount, group.members, splitMethod]);
+
   const handleUploadReceipt = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
 
-  // Update state when file is selected
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -116,45 +167,68 @@ const ExpenseForm = ({
     setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
-
     const expenseName = formData.get("expense-name") as string;
-    const amount = parseFloat(formData.get("amount") as string);
+    const amt = parseFloat(expenseAmount);
     const date = new Date(formData.get("date") as string);
-    // Values from hidden inputs:
     const category = formData.get("category") as ExpenseCategory;
     const paidByValue = formData.get("paidBy") as string;
-    const splitEquallyValue = formData.get("splitEqually") === "true";
 
     console.log("FormData values:", {
       expenseName,
-      amount,
+      amt,
       date,
       category,
       paidByValue,
-      splitEquallyValue,
+      splitMethod,
     });
 
-    if (!expenseName || isNaN(amount) || !date || !category || !paidByValue) {
+    if (!expenseName || isNaN(amt) || !date || !category || !paidByValue) {
       toast.error("Please fill in all required fields");
       setIsLoading(false);
       return;
     }
 
-    const splits = group.members.map((member) => {
-      const memberSplit = splitEquallyValue
-        ? parseFloat((amount / group.members.length).toFixed(2))
-        : parseFloat(formData.get(`split-${member.id}`) as string);
-      return {
+    let splits;
+    if (splitMethod === "equal") {
+      splits = group.members.map((member) => ({
         memberId: member.id,
-        amount: memberSplit,
+        amount: parseFloat((amt / group.members.length).toFixed(2)),
         paid: member.id === paidByValue,
-      };
-    });
+      }));
+    } else if (splitMethod === "percentage") {
+      const totalPercentage = group.members.reduce((sum, member) => {
+        return sum + parseFloat(splitPercentages[member.id] || "0");
+      }, 0);
+      if (Math.abs(totalPercentage - 100) > 0.01) {
+        toast.error("Total percentage must equal 100%");
+        setIsLoading(false);
+        return;
+      }
+      splits = group.members.map((member) => ({
+        memberId: member.id,
+        amount: parseFloat((amt * (parseFloat(splitPercentages[member.id]) / 100)).toFixed(2)),
+        paid: member.id === paidByValue,
+      }));
+    } else if (splitMethod === "manual") {
+      const totalManual = group.members.reduce((sum, member) => {
+        return sum + parseFloat(splitAmounts[member.id] || "0");
+      }, 0);
+      if (Math.abs(totalManual - amt) > 0.01) {
+        toast.error("Sum of manual splits must equal total amount");
+        setIsLoading(false);
+        return;
+      }
+      splits = group.members.map((member) => ({
+        memberId: member.id,
+        amount: parseFloat(splitAmounts[member.id]),
+        paid: member.id === paidByValue,
+      }));
+    }
 
     const expenseData = {
       ExpenseID: `exp-${Date.now()}`,
       name: expenseName,
-      amount,
+      amount: amt,
       date: date.toISOString(),
       category,
       currency: currency.code,
@@ -234,6 +308,8 @@ const ExpenseForm = ({
                 min="0"
                 step="0.01"
                 placeholder="0.00"
+                value={expenseAmount}
+                onChange={(e) => setExpenseAmount(e.target.value)}
                 className="pl-10"
                 required
               />
@@ -261,15 +337,16 @@ const ExpenseForm = ({
             <Label htmlFor="category">Category</Label>
             <Select
               value={selectedCategory}
-              onValueChange={(value) =>
-                setSelectedCategory(value as ExpenseCategory)
-              }
+              onValueChange={(value) => {
+                console.log("Category changed:", value);
+                setSelectedCategory(value as ExpenseCategory);
+              }}
             >
-              <SelectTrigger id="category">
+              <SelectTrigger id="category" className="bg-white">
                 <Tag className="mr-2 h-4 w-4 text-muted-foreground" />
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white">
                 {categories.map((cat) => (
                   <SelectItem key={cat} value={cat} className="capitalize">
                     {cat}
@@ -282,20 +359,31 @@ const ExpenseForm = ({
           {/* Paid By */}
           <div className="space-y-2 opacity-100">
             <Label htmlFor="paidBy">Paid By</Label>
-            <Select value={paidBy} onValueChange={setPaidBy}>
-              <SelectTrigger id="paidBy">
+            <Select
+              value={paidBy}
+              onValueChange={(value) => {
+                console.log("Paid By changed:", value);
+                setPaidBy(value);
+              }}
+            >
+              <SelectTrigger id="paidBy" className="bg-white">
                 <Users className="mr-2 h-4 w-4 text-muted" />
                 <SelectValue placeholder="Select who paid" />
               </SelectTrigger>
-              <SelectContent>
-                {group.members.map((member) => (
+              <SelectContent className="bg-white">
+                {(group.members || []).map((member: Member) => (
                   <SelectItem key={member.id} value={member.id}>
-                    <div className="flex items-center">
-                      <Avatar className="h-6 w-6 mr-2">
-                        <AvatarImage src={member.avatar} />
-                        <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
-                      </Avatar>
-                      <span>{member.name}</span>
+                    <div className="flex flex-col">
+                      <div className="flex items-center">
+                        <Avatar className="h-6 w-6 mr-2">
+                          <AvatarImage src={member.avatar} />
+                          <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium">{member.name}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground ml-8">
+                        {member.email}
+                      </p>
                     </div>
                   </SelectItem>
                 ))}
@@ -306,6 +394,93 @@ const ExpenseForm = ({
           {/* Hidden inputs for category and paidBy */}
           <input type="hidden" name="category" value={selectedCategory} />
           <input type="hidden" name="paidBy" value={paidBy} />
+
+          {/* Split Method Dropdown */}
+          <div className="space-y-2 md:col-span-2">
+            <Label>Split Method</Label>
+            <Select
+              value={splitMethod}
+              onValueChange={(value) => {
+                console.log("Split Method changed:", value);
+                setSplitMethod(value as SplitMethod);
+              }}
+            >
+              <SelectTrigger className="bg-white">
+                <SelectValue placeholder="Select split method" />
+              </SelectTrigger>
+              <SelectContent className="bg-white">
+                <SelectItem value="equal">Equal</SelectItem>
+                <SelectItem value="percentage">By Percentage</SelectItem>
+                <SelectItem value="manual">Manual</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Split Between Members */}
+          <div className="space-y-3 md:col-span-2">
+            <Label>Split Between</Label>
+            {group.members.map((member: Member) => (
+              <div key={member.id} className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Avatar className="h-8 w-8 mr-2">
+                    <AvatarImage src={member.avatar} />
+                    <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-medium">{member.name}</p>
+                    <p className="text-xs text-muted-foreground">{member.email}</p>
+                  </div>
+                </div>
+                {splitMethod === "equal" && (
+                  <div className="text-sm text-muted-foreground">
+                    {expenseAmount
+                      ? `$${(parseFloat(expenseAmount) / group.members.length).toFixed(2)}`
+                      : "Equal share"}
+                  </div>
+                )}
+                {splitMethod === "percentage" && (
+                  <div className="relative w-24">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      value={splitPercentages[member.id] || ""}
+                      onChange={(e) =>
+                        setSplitPercentages({
+                          ...splitPercentages,
+                          [member.id]: e.target.value,
+                        })
+                      }
+                      className="pl-2 bg-white"
+                      placeholder="%"
+                      required
+                    />
+                    <span className="absolute right-2 top-2 text-sm">%</span>
+                  </div>
+                )}
+                {splitMethod === "manual" && (
+                  <div className="relative w-24">
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={splitAmounts[member.id] || ""}
+                      onChange={(e) =>
+                        setSplitAmounts({
+                          ...splitAmounts,
+                          [member.id]: e.target.value,
+                        })
+                      }
+                      className="pl-2 bg-white"
+                      placeholder="0.00"
+                      required
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
 
           {/* Receipt Image */}
           <div className="space-y-2 md:col-span-2">
@@ -360,48 +535,7 @@ const ExpenseForm = ({
           <Separator className="md:col-span-2" />
 
           {/* Hidden splitEqually input */}
-          <input
-            type="hidden"
-            name="splitEqually"
-            value={splitEqually.toString()}
-          />
-
-          {/* Split Between Members */}
-          <div className="space-y-3 md:col-span-2">
-            <Label>Split Between</Label>
-            {group.members.map((member: Member) => (
-              <div key={member.id} className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Avatar className="h-8 w-8 mr-2">
-                    <AvatarImage src={member.avatar} />
-                    <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="text-sm font-medium">{member.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {member.email}
-                    </p>
-                  </div>
-                </div>
-                {!splitEqually ? (
-                  <div className="relative w-24">
-                    <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      name={`split-${member.id}`}
-                      className="pl-8"
-                      placeholder="0.00"
-                      required
-                    />
-                  </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground">Equal share</div>
-                )}
-              </div>
-            ))}
-          </div>
+          <input type="hidden" name="splitEqually" value="true" />
 
           {/* Submit button */}
           <div className="md:col-span-2 flex justify-end">

@@ -48,6 +48,13 @@
    git clone https://github.com/rupesh3433/frontend_blue.git
    cd frontend_blue
    ```
-   
+2. **Install Libraries**
+   ```sh
+   npm install
+   ```
+3. **Run the Frontend**
+   ```sh
+   npm run dev
+   ```
 
 

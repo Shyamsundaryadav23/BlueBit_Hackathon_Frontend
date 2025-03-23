@@ -366,7 +366,7 @@ const ExpenseForm = ({
                 setPaidBy(value);
               }}
             >
-              <SelectTrigger id="paidBy" className="bg-white">
+              <SelectTrigger id="paidBy" className="bg-white  w-full">
                 <Users className="mr-2 h-4 w-4 text-muted" />
                 <SelectValue placeholder="Select who paid" />
               </SelectTrigger>

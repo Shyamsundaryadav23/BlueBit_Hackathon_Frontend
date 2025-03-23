@@ -21,12 +21,16 @@ export type Group = {
 
 export type Member = {
   id: string;
-  userId: string;
+  userId?: string;
   name: string;
   email: string;
   avatar?: string;
   joined: Date;
 };
+
+
+
+
 
 export type ExpenseCategory = 
   | 'food' 

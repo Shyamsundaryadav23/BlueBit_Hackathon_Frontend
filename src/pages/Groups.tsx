@@ -1,28 +1,79 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PlusCircle } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import GroupCard from '@/components/groups/GroupCard';
 import GroupForm from '@/components/groups/GroupForm';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { mockGroups } from '@/utils/mockData';
 import Loader from '@/components/ui/Loader';
+import axios from 'axios'; // Make sure axios is installed or you can use fetch API
+import { Group } from '@/utils/mockData';
 
 const Groups = () => {
-  const [groups, setGroups] = useState(mockGroups);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch groups from backend
+  const fetchGroups = async () => {
+    setIsLoading(true);  // Show loading state
+    try {
+      // Retrieve the token from localStorage (or from your auth context, depending on your setup)
+      const token = localStorage.getItem('token');
+      
+      // If the token doesn't exist, throw an error
+      if (!token) {
+        throw new Error('No token found. Please log in again.');
+      }
+  
+      console.log('Token:', token);  
+      
+      const response = await axios.get("http://127.0.0.1:5000/api/groups", {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,  
+        },
+      });
+      console.log(response); // Check the response structure
+
+      if (response.status === 200) {
+        // Parse the API response data
+        const fetchedGroups = response.data.map((group: any) => ({
+          id: group.GroupID, // Map GroupID to id
+          name: group.name,
+          description: group.description,
+          members: group.members,
+          createdAt: new Date(group.createdAt), // Convert createdAt string to Date object
+        }));
+        
+        setGroups(fetchedGroups);  // Set groups state with the transformed data
+      } else {
+        throw new Error('Failed to fetch groups');
+      }
+    } catch (error) {
+      // Handle the error and show an appropriate message
+      console.error('Error fetching groups:', error);
+    } finally {
+      // Reset loading state
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch groups on component mount
+  useEffect(() => {
+    fetchGroups();
+  }, []);
 
   const openForm = () => setIsFormOpen(true);
   const closeForm = () => setIsFormOpen(false);
   
   // This handler is called after GroupForm successfully creates a group.
-  // You can update your groups state here if desired.
   const handleCreateGroup = () => {
     closeForm();
-    // Optionally, fetch updated groups from the backend.
     setIsLoading(true);
     setTimeout(() => {
+      // Refetch groups after creating a new group
+      fetchGroups();
       setIsLoading(false);
     }, 500);
   };
@@ -43,8 +94,8 @@ const Groups = () => {
         </div>
       ) : groups.length > 0 ? (
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {groups.map(group => (
-            <GroupCard key={group.id} group={group} />
+          {groups.map((group) => (
+            <GroupCard key={group.id} group={group} /> 
           ))}
         </div>
       ) : (

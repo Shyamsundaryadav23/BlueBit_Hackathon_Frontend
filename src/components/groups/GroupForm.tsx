@@ -13,9 +13,9 @@ import CustomButton from '../ui/CustomButton';
 
 interface MemberInput {
   id: string;
-  email: string;
-  name?: string;
-  avatar?: string;
+  email: string | null;
+  name?: string | null;
+  avatar?: string | null;
 }
 
 interface GroupFormProps {
@@ -25,7 +25,16 @@ interface GroupFormProps {
 
 const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [members, setMembers] = useState<MemberInput[]>([]);
+  const [members, setMembers] = useState<MemberInput[]>([
+    // Current user is always added by default
+    {
+      id: getRandomId(),
+      email: localStorage.getItem("email") || null, // Use ?? for nullish coalescing
+      name:  localStorage.getItem("name") || null,
+      avatar:  localStorage.getItem("picture") || null,
+    },
+  ]);
+  
 
   const [groupInfo, setGroupInfo] = useState({
     name: '',
@@ -176,7 +185,7 @@ const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
                   <div className="relative flex-1">
                     <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      value={member.email}
+                      value={member.email || ""} 
                       onChange={(e) => handleMemberChange(member.id, e.target.value)}
                       placeholder="Email address"
                       className="pl-9"

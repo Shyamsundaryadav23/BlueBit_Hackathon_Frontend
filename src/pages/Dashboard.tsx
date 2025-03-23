@@ -34,6 +34,9 @@ const Dashboard = () => {
           const data = await response.json();
           console.log("Fetched dashboard stats:", data);
           setDashboardStats(data);
+          localStorage.setItem("email",data.user.Email)
+          localStorage.setItem("name",data.user.name)
+          localStorage.setItem("picture",data.user.picture)
         } else {
           console.error("Failed to fetch dashboard stats", response.status);
         }

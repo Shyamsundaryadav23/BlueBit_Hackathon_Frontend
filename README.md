@@ -9,8 +9,8 @@
 - **Real-time Notifications**: Email alerts for shared expenses to those who have been added to the group
 - **Payment Simulation**: UPI & card payment processing integration (yet to be completed)
 - **Responsive Design**: Mobile-first UI components
-- ** Insights**: interactive user friendly insights for expense tracking
-- **Tamper-proof record**: Using block chain technology the records are safe (in implementation phase)
+- **Insights**: interactive user friendly insights for expense tracking
+- **Tamper-proof record**: Using block chain technology the records are safe (in implementation phase). **Note**-Smart Contract has been written and deplpyed in this address. Smart Contract Address - 0x358AA13c52544ECCEF6B0ADD0f801012ADAD5eE3 
 - **AR integration**: For additional feature (yet to be completed)
 
 ## Installation

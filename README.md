@@ -30,14 +30,6 @@
    npm run dev
    ```
 
-## Features
-
-- **Group Management:** Create, view, and manage groups of users.
-- **Expense Tracking:** Create and track expenses with receipt uploads.
-- **Payment Processing:** Simulate payment processing with UPI and card options.
-- **Real-time Notifications:** Email notifications for expense sharing.
-- **Responsive Design:** Mobile-friendly interface with modern UI components.
-
 ## Technology Stack
 
 - **Frontend:**  

@@ -1,14 +1,17 @@
 # SplitBro 
 
-**SplitBro** is an intuitive expense management solution developed during a hackathon. Built with modern web technologies, it simplifies group expenses, payments, and financial tracking through a clean interface.
+**SplitBro** is an expense management and bill splitting solution in integration with methods for debt settlement feature, developed during the BlueBit hackathon. Built with modern and classic web technologies, it simplifies group expenses, payments, and financial tracking through a clean interface and user friendly interface.
 
 ## Key Features 
 
--  **Group Management**: Create and manage user groups with ease
+- **Group Management**: Create and manage user groups with ease
 - **Expense Tracking**: Record expenses with receipt uploads
-- **Real-time Notifications**: Email alerts for shared expenses
-- **Payment Simulation**: UPI & card payment processing
+- **Real-time Notifications**: Email alerts for shared expenses to those who have been added to the group
+- **Payment Simulation**: UPI & card payment processing integration (yet to be completed)
 - **Responsive Design**: Mobile-first UI components
+- ** Insights**: interactive user friendly insights for expense tracking
+- **Tamper-proof record**: Using block chain technology the records are safe (in implementation phase)
+- **AR integration**: For additional feature (yet to be completed)
 
 ## Installation
 

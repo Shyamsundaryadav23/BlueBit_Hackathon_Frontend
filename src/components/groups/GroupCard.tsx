@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -50,7 +49,9 @@ const GroupCard = ({ group }: GroupCardProps) => {
             {group.members.slice(0, 4).map((member) => (
               <Avatar key={member.id} className="border-2 border-background h-8 w-8">
                 <AvatarImage src={member.avatar} />
-                <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
+                <AvatarFallback>
+                  {getInitials(member.name || 'Unknown')} {/* Default to 'Unknown' if name is missing */}
+                </AvatarFallback>
               </Avatar>
             ))}
             {group.members.length > 4 && (

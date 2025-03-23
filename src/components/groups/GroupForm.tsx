@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getInitials, getRandomId } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import CustomButton from '../ui/CustomButton';
-import { mockUsers } from '@/utils/mockData';
+// import { mockUsers } from '@/utils/mockData';
 
 interface MemberInput {
   id: string;
@@ -25,69 +25,77 @@ interface GroupFormProps {
 
 const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [members, setMembers] = useState<MemberInput[]>([
-    // Current user is always added by default
-    {
-      id: getRandomId(),
-      email: mockUsers[0].email,
-      name: mockUsers[0].name,
-      avatar: mockUsers[0].avatar
-    }
-  ]);
-  
+  const [members, setMembers] = useState<MemberInput[]>([]);
+
+  const [groupInfo, setGroupInfo] = useState({
+    name: '',
+    description: '',
+  });
+
+  // Handle changes to the group name and description
+  const handleGroupInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setGroupInfo((prevState) => ({
+      ...prevState,
+      [id]: value,
+    }));
+  };
+
   const handleAddMember = () => {
     setMembers([...members, { id: getRandomId(), email: '' }]);
   };
-  
+
   const handleRemoveMember = (id: string) => {
-    setMembers(members.filter(member => member.id !== id));
+    setMembers(members.filter((member) => member.id !== id));
   };
-  
+
   const handleMemberChange = (id: string, email: string) => {
-    setMembers(members.map(member => 
-      member.id === id ? { ...member, email } : member
-    ));
+    setMembers(
+      members.map((member) =>
+        member.id === id ? { ...member, email } : member
+      )
+    );
   };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     // Construct the group data from the form values.
     const groupData = {
-      GroupID: getRandomId(), // Generate a unique GroupID.
-      name: (document.getElementById("group-name") as HTMLInputElement)?.value,
-      description: (document.getElementById("description") as HTMLTextAreaElement)?.value || "",
-      members: members.map(member => ({
+      GroupID: getRandomId(), // Generate a unique GroupID
+      name: groupInfo.name,
+      description: groupInfo.description || '',
+      members: members.map((member) => ({
         id: member.id,
-        email: member.email,
+        email: member.email,  // Store the email for each member
         name: member.name,
-        avatar: member.avatar
+        avatar: member.avatar,
       })),
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
 
     // Debug: Print API URL and groupData to console.
-    const apiUrl = `${import.meta.env.VITE_APP_API_URL}/api/groups`;
+    const apiUrl = `http://127.0.0.1:5000/api/groups`;  // Adjust this if needed
     console.log('API URL:', apiUrl);
     console.log('Group Data:', groupData);
-  
+
     try {
       const token = localStorage.getItem('token'); // Or get it from your auth context.
       console.log('Token:', token);
-      
+
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(groupData)
+        body: JSON.stringify(groupData),
       });
-      
+
       const result = await response.json();
       console.log('API Response:', result);
-      
+
       if (response.ok) {
         toast.success(result.message || 'Group created successfully');
         onSave(); // Notify parent (Groups) that saving is complete.
@@ -101,7 +109,7 @@ const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
       setIsLoading(false);
     }
   };
-  
+
   return (
     <Card className="bg-white border-none shadow-subtle">
       <CardHeader>
@@ -113,33 +121,37 @@ const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
             <Label htmlFor="group-name">Group Name</Label>
             <div className="relative">
               <Users className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-              <Input 
-                id="group-name" 
-                placeholder="Vacation, Roommates, etc." 
+              <Input
+                id="name"
+                value={groupInfo.name}
+                onChange={handleGroupInfoChange}
+                placeholder="Vacation, Roommates, etc."
                 className="pl-10"
                 required
               />
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="description">Description (Optional)</Label>
             <div className="relative">
               <Info className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-              <Textarea 
+              <Textarea
                 id="description"
+                value={groupInfo.description}
+                onChange={handleGroupInfoChange}
                 placeholder="What is this group for?"
                 className="pl-10 min-h-24"
               />
             </div>
           </div>
-          
+
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label>Group Members</Label>
-              <Button 
-                type="button" 
-                size="sm" 
+              <Button
+                type="button"
+                size="sm"
                 variant="outline"
                 onClick={handleAddMember}
                 className="h-8 rounded-full text-xs"
@@ -148,7 +160,7 @@ const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
                 Add Member
               </Button>
             </div>
-            
+
             <div className="space-y-3">
               {members.map((member, index) => (
                 <div key={member.id} className="flex items-center gap-2">
@@ -160,10 +172,10 @@ const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
                       {member.name ? getInitials(member.name) : index === 0 ? 'You' : '?'}
                     </AvatarFallback>
                   </Avatar>
-                  
+
                   <div className="relative flex-1">
                     <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input 
+                    <Input
                       value={member.email}
                       onChange={(e) => handleMemberChange(member.id, e.target.value)}
                       placeholder="Email address"
@@ -173,17 +185,28 @@ const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
                       required
                     />
                   </div>
-                  
+
                   {index > 0 && (
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="icon" 
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
                       className="h-9 w-9 rounded-full flex-shrink-0"
                       onClick={() => handleRemoveMember(member.id)}
                     >
                       <span className="sr-only">Remove</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="lucide lucide-x"
+                      >
                         <path d="M18 6 6 18"></path>
                         <path d="m6 6 12 12"></path>
                       </svg>
@@ -196,17 +219,10 @@ const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
         </form>
       </CardContent>
       <CardFooter className="flex justify-end space-x-2">
-        <CustomButton
-          variant="outline"
-          onClick={onCancel}
-          disabled={isLoading}
-        >
+        <CustomButton variant="outline" onClick={onCancel} disabled={isLoading}>
           Cancel
         </CustomButton>
-        <CustomButton
-          onClick={handleSubmit}
-          isLoading={isLoading}
-        >
+        <CustomButton onClick={handleSubmit} isLoading={isLoading}>
           Create Group
         </CustomButton>
       </CardFooter>

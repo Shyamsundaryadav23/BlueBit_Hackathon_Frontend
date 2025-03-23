@@ -280,11 +280,11 @@ const ExpenseForm = ({
           </div>
 
           {/* Paid By */}
-          <div className="space-y-2">
+          <div className="space-y-2 opacity-100">
             <Label htmlFor="paidBy">Paid By</Label>
             <Select value={paidBy} onValueChange={setPaidBy}>
               <SelectTrigger id="paidBy">
-                <Users className="mr-2 h-4 w-4 text-muted-foreground" />
+                <Users className="mr-2 h-4 w-4 text-muted" />
                 <SelectValue placeholder="Select who paid" />
               </SelectTrigger>
               <SelectContent>

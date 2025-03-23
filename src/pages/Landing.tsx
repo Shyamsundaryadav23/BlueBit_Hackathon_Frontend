@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 
 export function Landing() {
@@ -35,7 +34,7 @@ export function Landing() {
             </Link>
             <Link
               to="/signin"
-              className="flex-1 px-8 py-4 bg-white bg-opacity-10 text-black  font-extrabold border border-white border-opacity-30 backdrop-blur-sm rounded-lg font-medium hover:bg-opacity-20 transition shadow-lg"
+              className="flex-1 px-8 py-4 bg-white bg-opacity-10 text-black  font-extrabold border border-white border-opacity-30 backdrop-blur-sm rounded-lg  hover:bg-opacity-20 transition shadow-lg"
             >
               Sign In
             </Link>

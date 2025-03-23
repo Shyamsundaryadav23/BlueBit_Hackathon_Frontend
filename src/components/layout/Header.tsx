@@ -65,7 +65,6 @@ export const Header = () => {
     { name: 'Dashboard', path: '/dashboard', icon: <Home className="w-4 h-4 mr-2" /> },
     { name: 'Groups', path: '/groups', icon: <Users className="w-4 h-4 mr-2" />, notification: 2 },
     { name: 'Insights', path: '/insights', icon: <PieChart className="w-4 h-4 mr-2" /> },
-    { name: 'Activity', path: '/expenses', icon: <History className="w-4 h-4 mr-2" /> },
   ];
 
   // Logout handler: clear auth state and navigate to signin.

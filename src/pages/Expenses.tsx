@@ -1139,7 +1139,7 @@ const Expenses: React.FC = () => {
 
       {/* Invite Dialog */}
       <Dialog open={inviteModalOpen} onOpenChange={setInviteModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] bg-white">
           <VisuallyHidden asChild>
             <DialogTitle>Invite Member</DialogTitle>
           </VisuallyHidden>

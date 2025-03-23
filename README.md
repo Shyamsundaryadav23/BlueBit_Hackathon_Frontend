@@ -59,5 +59,10 @@
 - [Link to Frontend](https://github.com/rupesh3433/frontend_blue)
 - [Link to Backend](https://github.com/rupesh3433/backend_blue)
 
+We are team Sagarmatha, For any inquiry regarding the project, Contact us at email: 
+- shyamsundar.yadav23@pccoepune.org
+- siddharthakumar.nidhi23@pccoepune.org
+- rupesh.poudel22@pccoepune.org
+- pravin.mahato22@pccoepune.org
 
 

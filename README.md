@@ -1,17 +1,16 @@
-# Frontend Blue
+# SplitBro 
 
-This repository contains the frontend for BlueBit—a web application for managing groups and expenses. The application is built with React and Vite, and integrates with a Flask backend (using DynamoDB) via a REST API.
+**SplitBro** is an intuitive expense management solution developed during a hackathon. Built with modern web technologies, it simplifies group expenses, payments, and financial tracking through a clean interface.
 
-## Table of Contents
+## Key Features 
 
-- [Features](#features)
-- [Technology Stack](#technology-stack)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Running the Application](#running-the-application)
-- [Folder Structure](#folder-structure)
-- [Contributing](#contributing)
-- [License](#license)
+-  **Group Management**: Create and manage user groups with ease
+- **Expense Tracking**: Record expenses with receipt uploads
+- **Real-time Notifications**: Email alerts for shared expenses
+- **Payment Simulation**: UPI & card payment processing
+- **Responsive Design**: Mobile-first UI components
+
+
 
 ## Features
 
@@ -28,18 +27,27 @@ This repository contains the frontend for BlueBit—a web application for managi
   - Vite  
   - Tailwind CSS  
   - Radix UI (Dialog, Tabs, etc.)
+  
 - **Backend:**  
   - Flask (Python)  
   - DynamoDB (AWS)  
   - JWT Authentication
+    
 - **Utilities:**  
   - Sonner for toast notifications  
   - Lucide React for icons
+
+## Video Url
+[Link to Video Url]()
 
 ## Installation
 
 1. **Clone the Repository:**
 
-   ```bash
+   ```sh
    git clone https://github.com/rupesh3433/frontend_blue.git
    cd frontend_blue
+   ```
+   
+
+

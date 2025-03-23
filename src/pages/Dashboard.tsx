@@ -1,13 +1,52 @@
 // src/pages/Dashboard.tsx
+import { useEffect, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import DashboardView from '@/components/dashboard/DashboardView';
 
 const Dashboard = () => {
-  // Mock data for the dashboard
+  // State for expense statistics fetched from API
+  const [dashboardStats, setDashboardStats] = useState({
+    totalExpenses: 0,
+    expensesPaid: 0,
+    expensesOwed: 0,
+  });
+
+  // Fetch expense stats from API on mount
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("No token found. User might not be logged in.");
+        return;
+      }
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_APP_API_URL}/api/dashboard`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Fetched dashboard stats:", data);
+          setDashboardStats(data);
+        } else {
+          console.error("Failed to fetch dashboard stats", response.status);
+        }
+      } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+      }
+    };
+
+    fetchDashboardStats();
+  }, []);
+
+  // Other dashboard mock data remains (for groups, recent activity, etc.)
   const dashboardData = {
-    totalExpenses: 15800,
-    expensesPaid: 9800,
-    expensesOwed: 6000,
     groups: [
       { id: '1', name: 'Trip to Goa', memberCount: 5 },
       { id: '2', name: 'Roommates', memberCount: 3 },
@@ -36,9 +75,9 @@ const Dashboard = () => {
   return (
     <AppLayout>
       <DashboardView 
-        totalExpenses={dashboardData.totalExpenses}
-        expensesPaid={dashboardData.expensesPaid}
-        expensesOwed={dashboardData.expensesOwed}
+        totalExpenses={dashboardStats.totalExpenses}
+        expensesPaid={dashboardStats.expensesPaid}
+        expensesOwed={dashboardStats.expensesOwed}
         groups={dashboardData.groups}
         groupBalances={dashboardData.groupBalances}
         recentActivity={dashboardData.recentActivity}

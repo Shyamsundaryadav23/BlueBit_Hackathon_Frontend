@@ -11,7 +11,13 @@ import {
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import ExpenseForm from "@/components/expenses/ExpenseForm";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { mockExpenses, mockGroups } from "@/utils/mockData";
 import Loader from "@/components/ui/Loader";
 import {
@@ -25,7 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ExpenseCard from "@/components/expenses/Expensecard";
+import ExpenseCard from "@/components/expenses/ExpenseCard";
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState(mockExpenses);
@@ -35,7 +41,6 @@ const Expenses = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [groupFilter, setGroupFilter] = useState("all");
   const [selectedTab, setSelectedTab] = useState("expenses");
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -150,7 +155,7 @@ const Expenses = () => {
     if (file) {
       const imageUrl = URL.createObjectURL(file);
       console.log("Receipt image selected:", imageUrl);
-      setSelectedImage(imageUrl);
+      // Optionally update parent's state if needed.
       toast.success("Receipt uploaded successfully", {
         description: "Your receipt image has been attached to the expense",
       });
@@ -247,7 +252,6 @@ const Expenses = () => {
                 className="w-full"
               />
             </div>
-
             <div className="w-full sm:w-48">
               <Select value={groupFilter} onValueChange={handleFilterChange}>
                 <SelectTrigger>
@@ -265,9 +269,7 @@ const Expenses = () => {
               </Select>
             </div>
           </div>
-
           <Separator className="mb-6" />
-
           {isLoading ? (
             <div className="h-40 flex-center">
               <Loader size="lg" />
@@ -279,7 +281,8 @@ const Expenses = () => {
                   key={expense.id}
                   expense={expense}
                   members={
-                    mockGroups.find((g) => g.id === expense.groupId)?.members || []
+                    mockGroups.find((g) => g.id === expense.groupId)?.members ||
+                    []
                   }
                   onPaymentClick={() => handleProceedToPayment(expense.id)}
                 />
@@ -316,46 +319,45 @@ const Expenses = () => {
         </TabsContent>
       </Tabs>
 
+      {/* Expense Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        {/* Added aria-describedby to satisfy Radix DialogContent requirements */}
-        <DialogContent
-          aria-describedby="expense-form-description"
-          className="sm:max-w-[600px] p-0 bg-white dark:bg-gray-900 shadow-lg rounded-lg"
-        >
-          <DialogTitle className="sr-only">Add New Expense</DialogTitle>
-          {/* Optionally add a description element */}
-          <p id="expense-form-description" className="sr-only">
-            Fill out the form to add a new expense.
-          </p>
+        <DialogContent className="sm:max-w-[600px] p-0 bg-white dark:bg-gray-900 shadow-lg rounded-lg">
+          <VisuallyHidden asChild>
+            <DialogTitle>Add New Expense</DialogTitle>
+          </VisuallyHidden>
+          <VisuallyHidden asChild>
+            <DialogDescription>
+              Fill out the form to add a new expense.
+            </DialogDescription>
+          </VisuallyHidden>
           <div className="p-6">
             <ExpenseForm
               group={mockGroups[0]}
               onSave={handleCreateExpense}
               onCancel={closeForm}
-              selectedImage={selectedImage}
-              onUploadReceipt={handleUploadReceipt}
             />
           </div>
         </DialogContent>
       </Dialog>
 
+      {/* Payment Dialog */}
       <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
-        <DialogContent
-          aria-describedby="payment-dialog-description"
-          className="sm:max-w-[500px]"
-        >
-          <DialogTitle className="sr-only">Complete Payment</DialogTitle>
-          <p id="payment-dialog-description" className="sr-only">
-            Choose your preferred payment method.
-          </p>
+        <DialogContent className="sm:max-w-[500px]">
+          <VisuallyHidden asChild>
+            <DialogTitle>Complete Payment</DialogTitle>
+          </VisuallyHidden>
+          <VisuallyHidden asChild>
+            <DialogDescription>
+              Choose your preferred payment method.
+            </DialogDescription>
+          </VisuallyHidden>
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold mb-2">Complete Payment</h2>
               <p className="text-muted-foreground">
-                Choose your preferred payment method
+                Choose your preferred payment method.
               </p>
             </div>
-
             <div className="p-4 bg-muted rounded-lg">
               <div className="flex justify-between mb-2">
                 <span className="text-muted-foreground">Amount:</span>
@@ -371,13 +373,11 @@ const Expenses = () => {
                 <span className="font-bold">$25.49</span>
               </div>
             </div>
-
             <Tabs defaultValue="upi" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="upi">UPI</TabsTrigger>
                 <TabsTrigger value="card">Card</TabsTrigger>
               </TabsList>
-
               <TabsContent value="upi" className="mt-4 space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">UPI ID</label>
@@ -389,7 +389,6 @@ const Expenses = () => {
                     <Button className="rounded-l-none">Verify</Button>
                   </div>
                 </div>
-
                 <div className="flex items-center justify-center p-6 border-2 border-dashed rounded-lg">
                   <div className="text-center">
                     <Smartphone className="h-10 w-10 mx-auto mb-2 text-primary" />
@@ -398,7 +397,6 @@ const Expenses = () => {
                     </p>
                   </div>
                 </div>
-
                 <Button
                   className="w-full"
                   onClick={processPayment}
@@ -412,13 +410,11 @@ const Expenses = () => {
                   {isLoading ? "Processing..." : "Pay with UPI"}
                 </Button>
               </TabsContent>
-
               <TabsContent value="card" className="mt-4 space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Card Number</label>
                   <Input placeholder="1234 5678 9012 3456" />
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Expiry Date</label>
@@ -429,7 +425,6 @@ const Expenses = () => {
                     <Input placeholder="123" />
                   </div>
                 </div>
-
                 <Button
                   className="w-full"
                   onClick={processPayment}
@@ -448,23 +443,24 @@ const Expenses = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Invite Dialog */}
       <Dialog open={inviteModalOpen} onOpenChange={setInviteModalOpen}>
-        <DialogContent
-          aria-describedby="invite-dialog-description"
-          className="sm:max-w-[500px]"
-        >
-          <DialogTitle className="sr-only">Invite Member</DialogTitle>
-          <p id="invite-dialog-description" className="sr-only">
-            Send an invitation to join your expense group.
-          </p>
+        <DialogContent className="sm:max-w-[500px]">
+          <VisuallyHidden asChild>
+            <DialogTitle>Invite Member</DialogTitle>
+          </VisuallyHidden>
+          <VisuallyHidden asChild>
+            <DialogDescription>
+              Send an invitation to join your expense group.
+            </DialogDescription>
+          </VisuallyHidden>
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold mb-2">Invite Member</h2>
               <p className="text-muted-foreground">
-                Send an invitation to join your expense group
+                Send an invitation to join your expense group.
               </p>
             </div>
-
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Email Address</label>
@@ -475,7 +471,6 @@ const Expenses = () => {
                   onChange={(e) => setInviteEmail(e.target.value)}
                 />
               </div>
-
               <div className="space-y-2">
                 <label className="text-sm font-medium">Group</label>
                 <Select defaultValue={mockGroups[0].id}>
@@ -491,13 +486,11 @@ const Expenses = () => {
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <label className="text-sm font-medium">Message (Optional)</label>
                 <Input placeholder="Join our expense group for the trip!" />
               </div>
             </div>
-
             <Button
               className="w-full"
               onClick={sendInvite}
@@ -513,14 +506,6 @@ const Expenses = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      <input
-        type="file"
-        accept="image/*"
-        className="hidden"
-        ref={fileInputRef}
-        onChange={handleImageChange}
-      />
     </AppLayout>
   );
 };

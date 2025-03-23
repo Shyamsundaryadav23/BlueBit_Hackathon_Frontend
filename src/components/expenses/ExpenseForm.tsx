@@ -63,17 +63,13 @@ const ExpenseForm = ({
   onUploadReceipt,
 }: ExpenseFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  // PaidBy is already stored in state
   const [paidBy, setPaidBy] = useState(group.members[0].id);
-  // Add state for selected category
   const [selectedCategory, setSelectedCategory] =
     useState<ExpenseCategory>("food");
   const [splitEqually, setSplitEqually] = useState(true);
   const [currency, setCurrency] = useState({ code: "USD", symbol: "$" });
   const [isDetectingLocation, setIsDetectingLocation] = useState(true);
-  const [receiptImage, setReceiptImage] = useState<string | null>(
-    selectedImage
-  );
+  const [receiptImage, setReceiptImage] = useState<string | null>(selectedImage);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -95,14 +91,14 @@ const ExpenseForm = ({
     detectCurrency();
   }, []);
 
-  const handleImageUpload = () => {
-    if (onUploadReceipt) {
-      onUploadReceipt();
-    } else if (fileInputRef.current) {
+  // Trigger file input click
+  const handleUploadReceipt = () => {
+    if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
 
+  // Update state when file is selected
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -119,14 +115,12 @@ const ExpenseForm = ({
     e.preventDefault();
     setIsLoading(true);
 
-    // FormData now picks up our hidden inputs
     const formData = new FormData(e.currentTarget);
 
-    // Basic form data
     const expenseName = formData.get("expense-name") as string;
     const amount = parseFloat(formData.get("amount") as string);
     const date = new Date(formData.get("date") as string);
-    // These values will now be provided via hidden inputs:
+    // Values from hidden inputs:
     const category = formData.get("category") as ExpenseCategory;
     const paidByValue = formData.get("paidBy") as string;
     const splitEquallyValue = formData.get("splitEqually") === "true";
@@ -140,14 +134,12 @@ const ExpenseForm = ({
       splitEquallyValue,
     });
 
-    // Validate required fields
     if (!expenseName || isNaN(amount) || !date || !category || !paidByValue) {
       toast.error("Please fill in all required fields");
       setIsLoading(false);
       return;
     }
 
-    // Process splits for each group member
     const splits = group.members.map((member) => {
       const memberSplit = splitEquallyValue
         ? parseFloat((amount / group.members.length).toFixed(2))
@@ -159,7 +151,6 @@ const ExpenseForm = ({
       };
     });
 
-    // Construct expense object
     const expenseData = {
       ExpenseID: `exp-${Date.now()}`,
       name: expenseName,
@@ -209,11 +200,7 @@ const ExpenseForm = ({
         <CardTitle className="text-xl">Add New Expense</CardTitle>
       </CardHeader>
       <CardContent>
-        {/* The form element wraps all inputs including our hidden ones */}
-        <form
-          onSubmit={handleSubmit}
-          className="grid grid-cols-1 md:grid-cols-2 gap-4"
-        >
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Expense Name */}
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="expense-name">Expense Name</Label>
@@ -237,9 +224,7 @@ const ExpenseForm = ({
                 {isDetectingLocation ? (
                   <div className="h-4 w-4 border-2 border-t-transparent border-muted-foreground rounded-full animate-spin"></div>
                 ) : (
-                  <span className="text-base font-medium">
-                    {currency.symbol}
-                  </span>
+                  <span className="text-base font-medium">{currency.symbol}</span>
                 )}
               </div>
               <Input
@@ -308,9 +293,7 @@ const ExpenseForm = ({
                     <div className="flex items-center">
                       <Avatar className="h-6 w-6 mr-2">
                         <AvatarImage src={member.avatar} />
-                        <AvatarFallback>
-                          {getInitials(member.name)}
-                        </AvatarFallback>
+                        <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
                       </Avatar>
                       <span>{member.name}</span>
                     </div>
@@ -332,12 +315,11 @@ const ExpenseForm = ({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleImageUpload}
+                onClick={handleUploadReceipt}
               >
                 <ImageIcon className="mr-2 h-4 w-4" />
                 Upload Receipt
               </Button>
-              {/* Adding a name here is optional if you want it in the formData */}
               <input
                 type="file"
                 name="receipt"
@@ -388,10 +370,7 @@ const ExpenseForm = ({
           <div className="space-y-3 md:col-span-2">
             <Label>Split Between</Label>
             {group.members.map((member: Member) => (
-              <div
-                key={member.id}
-                className="flex items-center justify-between"
-              >
+              <div key={member.id} className="flex items-center justify-between">
                 <div className="flex items-center">
                   <Avatar className="h-8 w-8 mr-2">
                     <AvatarImage src={member.avatar} />
@@ -418,15 +397,13 @@ const ExpenseForm = ({
                     />
                   </div>
                 ) : (
-                  <div className="text-sm text-muted-foreground">
-                    Equal share
-                  </div>
+                  <div className="text-sm text-muted-foreground">Equal share</div>
                 )}
               </div>
             ))}
           </div>
 
-          {/* Submit button inside the form */}
+          {/* Submit button */}
           <div className="md:col-span-2 flex justify-end">
             <CustomButton type="submit" isLoading={isLoading}>
               Save Expense

@@ -56,8 +56,8 @@
 [Link to Video Url](https://drive.google.com/file/d/1VfvvrC9bY-PTc7TMtWM-yymD4IaiQeK5/view?usp=sharing)
 
 ## Project Github Url 
-[Link to Frontend](https://github.com/rupesh3433/frontend_blue)
-[Link to Backend](https://github.com/rupesh3433/backend_blue)
+- [Link to Frontend](https://github.com/rupesh3433/frontend_blue)
+- [Link to Backend](https://github.com/rupesh3433/backend_blue)
 
 
 

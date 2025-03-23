@@ -10,7 +10,22 @@
 - **Payment Simulation**: UPI & card payment processing
 - **Responsive Design**: Mobile-first UI components
 
+## Installation
 
+1. **Clone the Repository:**
+
+   ```sh
+   git clone https://github.com/rupesh3433/frontend_blue.git
+   cd frontend_blue
+   ```
+2. **Install Libraries**
+   ```sh
+   npm install
+   ```
+3. **Run the Frontend**
+   ```sh
+   npm run dev
+   ```
 
 ## Features
 
@@ -38,23 +53,11 @@
   - Lucide React for icons
 
 ## Video Url
-[Link to Video Url]()
+[Link to Video Url](https://drive.google.com/file/d/1VfvvrC9bY-PTc7TMtWM-yymD4IaiQeK5/view?usp=sharing)
 
-## Installation
+## Project Github Url 
+[Link to Frontend](https://github.com/rupesh3433/frontend_blue)
+[Link to Backend](https://github.com/rupesh3433/backend_blue)
 
-1. **Clone the Repository:**
-
-   ```sh
-   git clone https://github.com/rupesh3433/frontend_blue.git
-   cd frontend_blue
-   ```
-2. **Install Libraries**
-   ```sh
-   npm install
-   ```
-3. **Run the Frontend**
-   ```sh
-   npm run dev
-   ```
 
 

@@ -95,7 +95,7 @@ export const Header = () => {
             <span className="rounded-full bg-primary p-2 text-white">
               <PieChart size={16} />
             </span>
-            <span className="font-semibold text-xl">SplitPal</span>
+            <span className="font-semibold text-xl">SplitBro</span>
           </Link>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
@@ -127,13 +127,23 @@ export const Header = () => {
         isScrolled && 'shadow-md'
       )}
     >
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link to="/dashboard" className="flex items-center gap-2 transition-transform hover:scale-105" onClick={closeMenu}>
+            <div className="container mx-auto flex h-16 items-center justify-between px-4">
+        <Link
+          to="/dashboard"
+          className="flex items-center gap-2 transition-transform hover:scale-105"
+          onClick={closeMenu}
+        >
+          <img
+            src="public/logo_bluebit.png"
+            alt="logo"
+            className="rounded-full w-10 h-10 object-cover"
+          />
+          <span className="font-semibold text-xl">SplitBro</span>
           <span className="rounded-full bg-primary p-2 text-white">
             <PieChart size={16} />
           </span>
-          <span className="font-semibold text-xl">SplitPal</span>
         </Link>
+
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">

@@ -632,6 +632,7 @@ import {
   CreditCard,
   UserPlus,
   Smartphone,
+  Camera,
 } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -657,7 +658,6 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ExpenseCard from "@/components/expenses/ExpenseCard";
 import axios from "axios";
-
 // Define ExpenseCategory union type
 type ExpenseCategory =
   | "food"
@@ -701,7 +701,7 @@ const Expenses: React.FC = () => {
   // Read groupId from the URL.
   const { groupId } = useParams<{ groupId: string }>();
   console.log("Expenses Page - groupId:", groupId);
-
+  const [scanMeDialogOpen] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([]);
   const [groupDetails, setGroupDetails] = useState<Group | null>(null);
@@ -905,6 +905,10 @@ const Expenses: React.FC = () => {
       });
     }, 1500);
   };
+
+  function setScanMeDialogOpen(arg0: boolean): void {
+    throw new Error("Function not implemented.");
+  }
 
   return (
     <AppLayout>
@@ -1139,7 +1143,7 @@ const Expenses: React.FC = () => {
 
       {/* Invite Dialog */}
       <Dialog open={inviteModalOpen} onOpenChange={setInviteModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] bg bg-white">
           <VisuallyHidden asChild>
             <DialogTitle>Invite Member</DialogTitle>
           </VisuallyHidden>
@@ -1192,6 +1196,7 @@ const Expenses: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
     </AppLayout>
   );
 };

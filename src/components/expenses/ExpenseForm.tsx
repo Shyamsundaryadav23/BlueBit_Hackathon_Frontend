@@ -80,6 +80,7 @@ const ExpenseForm = ({
   const [receiptFileName, setReceiptFileName] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Log group members for debugging
   useEffect(() => {
     if (group && group.id && group.members) {
       group.members.forEach((member: any) => {
@@ -165,7 +166,6 @@ const ExpenseForm = ({
     const expenseName = formData.get("expense-name") as string;
     const amt = parseFloat(expenseAmount);
     const rawDate = formData.get("date") as string;
-    // Read category from form data:
     const category = formData.get("category") as ExpenseCategory;
 
     if (!expenseName || isNaN(amt) || !rawDate || !category) {
@@ -270,9 +270,9 @@ const ExpenseForm = ({
   };
 
   // Filter duplicate members (only include those with valid email)
-  const validMembers = group.members.filter((member) => member.email);
+  const validMembers = group.members.filter((member: any) => member.email);
   const uniqueMembers = Array.from(
-    new Map(validMembers.map((member) => [member.email, member])).values()
+    new Map(validMembers.map((member: any) => [member.email, member])).values()
   );
 
   return (
@@ -317,7 +317,13 @@ const ExpenseForm = ({
             <Label htmlFor="expense-name">Expense Name</Label>
             <div className="relative">
               <Hash className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-              <Input id="expense-name" name="expense-name" placeholder="Dinner, Movie Tickets, etc." className="pl-10" required />
+              <Input
+                id="expense-name"
+                name="expense-name"
+                placeholder="Dinner, Movie Tickets, etc."
+                className="pl-10"
+                required
+              />
             </div>
           </div>
 

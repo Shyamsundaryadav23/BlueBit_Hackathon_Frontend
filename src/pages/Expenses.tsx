@@ -74,6 +74,13 @@ interface Group {
   updatedAt: Date;
 }
 
+interface MemberMap {
+  [key: string]: {
+    name: string;
+    email: string;
+  };
+}
+
 const Expenses: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
   console.log("Expenses Page - groupId:", groupId);
@@ -120,6 +127,20 @@ const Expenses: React.FC = () => {
       console.error("Error fetching group details:", error);
       toast.error("Failed to fetch group details");
     }
+  };
+
+  // Compute memberMap from groupDetails for settlement view.
+  const computeMemberMap = (): MemberMap => {
+    const map: MemberMap = {};
+    if (groupDetails && groupDetails.members) {
+      groupDetails.members.forEach((member: any) => {
+        const id = member.userId || member.id;
+        if (member.email) {
+          map[id] = { name: member.name, email: member.email };
+        }
+      });
+    }
+    return map;
   };
 
   // Fetch expenses for the group
@@ -327,9 +348,20 @@ const Expenses: React.FC = () => {
     }
   }, [groupId]);
 
-  // Filter duplicate members (only include those with valid email)
+  // Filter duplicate members (only include those with valid email) from groupDetails
   const validMembers = groupDetails?.members.filter((member: any) => member.email) || [];
-  const uniqueMembers = Array.from(new Map(validMembers.map((member: any) => [member.email, member])).values());
+  const uniqueMembers = Array.from(
+    new Map(validMembers.map((member: any) => [member.email, member])).values()
+  );
+
+  // Compute memberMap to pass to SettleDebtsCard (mapping userId -> { name, email })
+  const memberMap = groupDetails?.members.reduce((map: any, member: any) => {
+    const id = member.userId || member.id;
+    if (member.email) {
+      map[id] = { name: member.name, email: member.email };
+    }
+    return map;
+  }, {}) || {};
 
   return (
     <AppLayout>
@@ -430,6 +462,7 @@ const Expenses: React.FC = () => {
             onSettle={handleSettleDebts}
             isSettling={isSettling}
             currency={currency}
+            memberMap={memberMap}
           />
           {settlementTransactions.length > 0 ? (
             <div className="space-y-4">
@@ -439,9 +472,17 @@ const Expenses: React.FC = () => {
                   className="flex items-center justify-between p-4 border rounded-lg"
                 >
                   <div className="flex-1">
-                    <span className="font-medium">{transaction.From}</span>
+                    <span className="font-medium">
+                      {memberMap[transaction.From]
+                        ? memberMap[transaction.From].name
+                        : transaction.From}
+                    </span>
                     <span className="mx-2">→</span>
-                    <span className="font-medium">{transaction.To}</span>
+                    <span className="font-medium">
+                      {memberMap[transaction.To]
+                        ? memberMap[transaction.To].name
+                        : transaction.To}
+                    </span>
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="font-semibold">

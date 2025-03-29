@@ -1,13 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Transaction } from "@/utils/mockData";
 import Loader from "../ui/Loader";
+import { Transaction } from "@/utils/mockData";
 
 interface SettleDebtsCardProps {
   transactions: Transaction[];
   onSettle: () => Promise<void>;
   isSettling: boolean;
   currency: { symbol: string };
+  memberMap: { [key: string]: { name: string; email: string } };
 }
 
 export const SettleDebtsCard = ({
@@ -15,7 +16,15 @@ export const SettleDebtsCard = ({
   onSettle,
   isSettling,
   currency,
+  memberMap,
 }: SettleDebtsCardProps) => {
+  const getDisplayName = (id: string) => {
+    if (memberMap[id]) {
+      return `${memberMap[id].name} (${memberMap[id].email})`;
+    }
+    return id;
+  };
+
   return (
     <Card className="border-none shadow-subtle">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -53,8 +62,8 @@ export const SettleDebtsCard = ({
                 key={tx.TransactionID}
                 className="grid grid-cols-3 items-center py-2"
               >
-                <span className="truncate">{tx.From}</span>
-                <span className="text-center truncate">{tx.To}</span>
+                <span className="truncate">{getDisplayName(tx.From)}</span>
+                <span className="text-center truncate">{getDisplayName(tx.To)}</span>
                 <span className="text-right font-medium">
                   {currency.symbol}{parseFloat(tx.Amount).toFixed(2)}
                 </span>

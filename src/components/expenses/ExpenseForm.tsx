@@ -191,15 +191,20 @@ const ExpenseForm = ({
     }
 
     const currentUserEmail = localStorage.getItem("email");
-    const paidByValue =
-      group.members.find((member: Member) => member.email === currentUserEmail)?.id || "";
-
+    // Lookup current user's userID using email; here we assume group.members include a userId field.
+    const currentUserID =
+      group.members.find((member: Member) => member.email === currentUserEmail)?.userId ||
+      group.members.find((member: Member) => member.email === currentUserEmail)?.id ||
+      "";
+      
+    // Build splits; instead of using member.id, use member.userId if available.
     let splits;
     if (splitMethod === "equal") {
       splits = group.members.map((member) => ({
-        memberId: member.id,
+        // Use userId if available, else fallback to member.id.
+        memberId: member.userId || member.id,
         amount: parseFloat((amt / group.members.length).toFixed(2)),
-        paid: member.id === paidByValue,
+        paid: (member.userId || member.id) === currentUserID,
       }));
     } else if (splitMethod === "percentage") {
       const totalPercentage = group.members.reduce((sum, member) => {
@@ -211,9 +216,9 @@ const ExpenseForm = ({
         return;
       }
       splits = group.members.map((member) => ({
-        memberId: member.id,
+        memberId: member.userId || member.id,
         amount: parseFloat((amt * (parseFloat(splitPercentages[member.id]) / 100)).toFixed(2)),
-        paid: member.id === paidByValue,
+        paid: (member.userId || member.id) === currentUserID,
       }));
     } else if (splitMethod === "manual") {
       const totalManual = group.members.reduce((sum, member) => {
@@ -225,9 +230,9 @@ const ExpenseForm = ({
         return;
       }
       splits = group.members.map((member) => ({
-        memberId: member.id,
+        memberId: member.userId || member.id,
         amount: parseFloat(splitAmounts[member.id]),
-        paid: member.id === paidByValue,
+        paid: (member.userId || member.id) === currentUserID,
       }));
     }
 
@@ -239,7 +244,7 @@ const ExpenseForm = ({
       category,
       currency: currency.code,
       GroupID: group.id,
-      paidBy: paidByValue,
+      paidBy: currentUserID,
       splits,
       description: (formData.get("description") as string) || undefined,
       receiptImage: receiptImageUrl || undefined,
@@ -267,8 +272,8 @@ const ExpenseForm = ({
     }
   };
 
-  // Filter out any members with missing email and deduplicate based on email.
-  const validMembers = group.members.filter(member => member.email);
+  // Filter duplicate members (only include those with valid email)
+  const validMembers = group.members.filter((member) => member.email);
   const uniqueMembers = Array.from(
     new Map(validMembers.map((member) => [member.email, member])).values()
   );
@@ -299,7 +304,14 @@ const ExpenseForm = ({
             )}
           </div>
           <div className="text-sm text-muted-foreground">Fill Bill Automatically</div>
-          <input type="file" name="receipt" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} />
+          <input
+            type="file"
+            name="receipt"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*"
+            onChange={handleImageChange}
+          />
         </div>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -71,12 +71,18 @@ const ExpenseForm = ({
     useState<ExpenseCategory>("food");
   const [splitMethod, setSplitMethod] = useState<SplitMethod>("equal");
   const [expenseAmount, setExpenseAmount] = useState("");
-  const [splitPercentages, setSplitPercentages] = useState<{ [key: string]: string }>({});
-  const [splitAmounts, setSplitAmounts] = useState<{ [key: string]: string }>({});
+  const [splitPercentages, setSplitPercentages] = useState<{
+    [key: string]: string;
+  }>({});
+  const [splitAmounts, setSplitAmounts] = useState<{
+    [key: string]: string;
+  }>({});
   const [currency, setCurrency] = useState({ code: "USD", symbol: "$" });
   const [isDetectingLocation, setIsDetectingLocation] = useState(true);
   // Store the image URL and file name for receipt preview.
-  const [receiptImageUrl, setReceiptImageUrl] = useState<string | null>(selectedImage);
+  const [receiptImageUrl, setReceiptImageUrl] = useState<string | null>(
+    selectedImage
+  );
   const [receiptFileName, setReceiptFileName] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -165,11 +171,33 @@ const ExpenseForm = ({
     const formData = new FormData(e.currentTarget);
     const expenseName = formData.get("expense-name") as string;
     const amt = parseFloat(expenseAmount);
-    const date = new Date(formData.get("date") as string);
+    const rawDate = formData.get("date") as string;
+    // Read category from form data:
     const category = formData.get("category") as ExpenseCategory;
 
-    if (!expenseName || isNaN(amt) || !date || !category) {
+    // Basic checks for required fields
+    if (!expenseName || isNaN(amt) || !rawDate || !category) {
       toast.error("Please fill in all required fields");
+      setIsLoading(false);
+      return;
+    }
+
+    // Parse the date to handle both MM/DD/YYYY or YYYY-MM-DD
+    let date: Date;
+    if (rawDate.includes("-")) {
+      // Format: YYYY-MM-DD (common for <input type="date" />)
+      date = new Date(rawDate);
+    } else if (rawDate.includes("/")) {
+      // Format: MM/DD/YYYY
+      const [month, day, year] = rawDate.split("/");
+      date = new Date(+year, +month - 1, +day);
+    } else {
+      // Fallback if user typed something else
+      date = new Date(rawDate);
+    }
+
+    if (isNaN(date.getTime())) {
+      toast.error("Invalid date format. Please use YYYY-MM-DD or MM/DD/YYYY.");
       setIsLoading(false);
       return;
     }
@@ -198,7 +226,9 @@ const ExpenseForm = ({
       }
       splits = group.members.map((member) => ({
         memberId: member.id,
-        amount: parseFloat((amt * (parseFloat(splitPercentages[member.id]) / 100)).toFixed(2)),
+        amount: parseFloat(
+          (amt * (parseFloat(splitPercentages[member.id]) / 100)).toFixed(2)
+        ),
         paid: member.id === paidByValue,
       }));
     } else if (splitMethod === "manual") {
@@ -224,11 +254,12 @@ const ExpenseForm = ({
       date: date.toISOString(),
       category,
       currency: currency.code,
-      groupId: group.id,
+      // Updated key: use "GroupID" instead of "groupId"
+      GroupID: group.id,
       paidBy: paidByValue,
       splits,
       description: (formData.get("description") as string) || undefined,
-      receiptImage: receiptImageUrl || undefined,
+      receiptImage: receiptImageUrl || undefined, // Optional receipt
     };
 
     try {
@@ -308,7 +339,10 @@ const ExpenseForm = ({
           />
         </div>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form
+          onSubmit={handleSubmit}
+          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+        >
           {/* Expense Name */}
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="expense-name">Expense Name</Label>
@@ -332,7 +366,9 @@ const ExpenseForm = ({
                 {isDetectingLocation ? (
                   <div className="h-4 w-4 border-2 border-t-transparent border-muted-foreground rounded-full animate-spin"></div>
                 ) : (
-                  <span className="text-base font-medium">{currency.symbol}</span>
+                  <span className="text-base font-medium">
+                    {currency.symbol}
+                  </span>
                 )}
               </div>
               <Input
@@ -359,7 +395,6 @@ const ExpenseForm = ({
                 id="date"
                 name="date"
                 type="date"
-                defaultValue={new Date().toISOString().slice(0, 10)}
                 className="pl-10"
                 required
               />
@@ -388,6 +423,12 @@ const ExpenseForm = ({
                   ))}
                 </SelectContent>
               </Select>
+              {/* Hidden input so formData has "category" */}
+              <input
+                type="hidden"
+                name="category"
+                value={selectedCategory}
+              />
             </div>
             <div className="space-y-2">
               <Label>Split Method</Label>
@@ -419,13 +460,17 @@ const ExpenseForm = ({
                   </Avatar>
                   <div>
                     <p className="text-sm font-medium">{member.name}</p>
-                    <p className="text-xs text-muted-foreground">{member.email}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {member.email}
+                    </p>
                   </div>
                 </div>
                 {splitMethod === "equal" && (
                   <div className="text-sm text-muted-foreground">
                     {expenseAmount
-                      ? `$${(parseFloat(expenseAmount) / group.members.length).toFixed(2)}`
+                      ? `${currency.symbol}${(
+                          parseFloat(expenseAmount) / group.members.length
+                        ).toFixed(2)}`
                       : "Equal share"}
                   </div>
                 )}
@@ -435,7 +480,7 @@ const ExpenseForm = ({
                       type="number"
                       min="0"
                       max="100"
-                      step="0.1"
+                      step="any"
                       value={splitPercentages[member.id] || ""}
                       onChange={(e) =>
                         setSplitPercentages({

@@ -60,18 +60,19 @@ export type Expense = {
   updatedAt: Date;
 };
 
-export type Transaction = {
-  id: string;
-  groupId: string;
-  fromMemberId: string;
-  toMemberId: string;
-  amount: number;
-  currency: string;
-  date: Date;
-  status: 'pending' | 'completed' | 'cancelled';
-  createdAt: Date;
-  updatedAt: Date;
-};
+// Add to your existing mockData.ts
+export type TransactionStatus = 'pending' | 'completed' | 'cancelled';
+
+export interface Transaction {
+  TransactionID: string;
+  GroupID: string;
+  From: string; // email of the payer
+  To: string;   // email of the payee
+  Amount: string;
+  Date: string;
+  Status: TransactionStatus;
+  CreatedBy: string;
+}
 
 // Helper functions for API calls (adjust URLs as needed)
 

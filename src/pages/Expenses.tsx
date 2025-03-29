@@ -34,9 +34,10 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ExpenseCard from "@/components/expenses/ExpenseCard";
 import axios from "axios";
-import ARScanDialog from "@/components/arscan/ARScanDialogue"; // Import ARScanDialog
+import ARScanDialog from "@/components/arscan/ARScanDialogue";
+import { SettleDebtsCard } from "@/components/settledebt/SettleDebtsCard";
+import { Transaction } from "@/utils/mockData";
 
-// Define ExpenseCategory union type
 type ExpenseCategory =
   | "food"
   | "transportation"
@@ -88,27 +89,26 @@ const Expenses: React.FC = () => {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
-  const [successMessage] = useState("");
-  // State to control AR Scan dialog visibility.
   const [isARScanOpen, setIsARScanOpen] = useState(false);
+  const [settlementTransactions, setSettlementTransactions] = useState<Transaction[]>([]);
+  const [isSettling, setIsSettling] = useState(false);
+  const [currency] = useState({ symbol: "$" });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const apiUrl = import.meta.env.VITE_APP_API_URL;
-  // Fetch full group details
+
+  // Fetch group details from API
   const fetchGroupDetails = async () => {
     if (!groupId) return;
     try {
       const token = localStorage.getItem("token");
-      console.log("Token:", token);
       if (!token) throw new Error("No token found");
-      console.log("Fetching group details for group:", groupId);
       const res = await axios.get(`${apiUrl}/api/groups/${groupId}`, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
-      console.log("Fetched full group details:", res.data);
       setGroupDetails({
         id: res.data.GroupID,
         name: res.data.name,
@@ -121,22 +121,18 @@ const Expenses: React.FC = () => {
       toast.error("Failed to fetch group details");
     }
   };
+
   // Fetch expenses for the group
   const fetchExpenses = async () => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
       if (!token || !groupId) throw new Error("No token or group ID found");
-      console.log("Fetching expenses for group:", groupId);
-      const response = await axios.get(
-        `${apiUrl}/api/expenses/group/${groupId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      console.log("Fetched expenses from API:", response.data);
+      const response = await axios.get(`${apiUrl}/api/expenses/group/${groupId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const groupExpenses: Expense[] = response.data.map((expense: any) => ({
         id: expense.ExpenseID,
         ExpenseID: expense.ExpenseID,
@@ -163,63 +159,56 @@ const Expenses: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    console.log("Expenses useEffect triggered, groupId:", groupId);
-    if (groupId) {
-      setGroupFilter(groupId);
-      fetchGroupDetails();
-      fetchExpenses();
-    }
-  }, [groupId]);
-
-  const openForm = () => {
-    console.log("Opening expense form");
-    setIsFormOpen(true);
-  };
-
-  const closeForm = () => {
-    console.log("Closing expense form");
-    setIsFormOpen(false);
-  };
-
-  // AR Scan functionality – opens the AR Scan dialog.
-  const handleARScan = () => {
-    console.log("AR Scan triggered");
-    setIsARScanOpen(true);
-  };
-
-  const handleCreateExpense = async (newExpenseData: Partial<Expense>) => {
-    console.log("ExpenseForm onSave called with data:", newExpenseData);
-    closeForm();
-    setIsLoading(true);
+  // Fetch settlement transactions for the group
+  const fetchSettlementTransactions = async () => {
     try {
-      const response = await axios.post(
-        `${apiUrl}/api/expenses`,
-        newExpenseData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-      console.log("Expense created:", response.data);
-      await fetchExpenses();
-      toast.success("Expense added successfully");
+      const token = localStorage.getItem("token");
+      if (!token || !groupId) return;
+      const response = await fetch(`${apiUrl}/api/transactions/group/${groupId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) throw new Error("Failed to fetch transactions");
+      const data = await response.json();
+      setSettlementTransactions(data.transactions || []);
     } catch (error) {
-      console.error("Error creating expense:", error);
-      toast.error("Failed to add expense");
-    } finally {
-      setIsLoading(false);
+      console.error("Error fetching transactions:", error);
+      toast.error("Error loading settlement transactions");
     }
   };
 
+  // Settle debts by calling the API
+  const handleSettleDebts = async () => {
+    setIsSettling(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token || !groupId) throw new Error("No token or group ID found");
+      const response = await fetch(`${apiUrl}/api/groups/${groupId}/settle`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) throw new Error("Settlement failed");
+      const result = await response.json();
+      setSettlementTransactions(result.transactions);
+      toast.success("Debts settled successfully!", {
+        description: `${result.transactions.length} transactions created`,
+      });
+    } catch (error) {
+      console.error("Settlement error:", error);
+      toast.error("Failed to settle debts. Please try again.");
+    } finally {
+      setIsSettling(false);
+    }
+  };
+
+  // Filtering expenses based on search and group filter
   const applyFilters = (search: string, group: string) => {
-    console.log("Applying filters with search:", search, "and group:", group);
     let filtered = [...expenses];
     if (group !== "all") {
       filtered = filtered.filter((expense) => expense.groupId === group);
-      console.log("Filtered by group:", filtered);
     }
     if (search) {
       const searchLower = search.toLowerCase();
@@ -229,31 +218,35 @@ const Expenses: React.FC = () => {
           (expense.category &&
             expense.category.toLowerCase().includes(searchLower))
       );
-      console.log("Filtered by search:", filtered);
     }
-    console.log("Final filtered expenses:", filtered);
     setFilteredExpenses(filtered);
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    console.log("Search term changed to:", value);
     setSearchTerm(value);
     applyFilters(value, groupFilter);
   };
 
-  const handleFilterChange = (groupId: string) => {
-    console.log("Filter changed to group:", groupId);
-    setGroupFilter(groupId);
-    applyFilters(searchTerm, groupId);
+  const handleFilterChange = (group: string) => {
+    setGroupFilter(group);
+    applyFilters(searchTerm, group);
   };
 
-  const handleProceedToPayment = (expenseId: string) => {
-    console.log("Proceeding to payment for expense:", expenseId);
-    setSelectedExpenseId(expenseId);
-    setPaymentModalOpen(true);
+  const openForm = () => {
+    setIsFormOpen(true);
   };
 
+  const closeForm = () => {
+    setIsFormOpen(false);
+  };
+
+  // AR Scan functionality
+  const handleARScan = () => {
+    setIsARScanOpen(true);
+  };
+
+  // Payment processing (stub function)
   const processPayment = () => {
     console.log("Processing payment for expense:", selectedExpenseId);
     setIsLoading(true);
@@ -265,20 +258,46 @@ const Expenses: React.FC = () => {
       });
     }, 2000);
   };
+
+  // Create a new expense (called when ExpenseForm onSave is triggered)
+  const handleCreateExpense = async (newExpenseData: Partial<Expense>) => {
+    closeForm();
+    setIsLoading(true);
+    try {
+      const response = await axios.post(`${apiUrl}/api/expenses`, newExpenseData, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      console.log("Expense created:", response.data);
+      await fetchExpenses();
+      toast.success("Expense added successfully");
+    } catch (error) {
+      console.error("Error creating expense:", error);
+      toast.error("Failed to add expense");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Payment dialog trigger
+  const handleProceedToPayment = (expenseId: string) => {
+    setSelectedExpenseId(expenseId);
+    setPaymentModalOpen(true);
+  };
+
+  // Invite dialog functions (for inviting new members)
   const sendInvite = async () => {
     if (!inviteEmail) {
       toast.error("Please enter an email address");
       return;
     }
-  
-    console.log("Sending invite to:", inviteEmail);
     setIsLoading(true);
-  
     const templateParams = {
       user_email: inviteEmail,
-      invite_link: `${import.meta.env.VITE_APP_API_URL}/invite?group=${groupId}`,
+      invite_link: `${apiUrl}/invite?group=${groupId}`,
     };
-  
     try {
       await emailjs.send(
         import.meta.env.VITE_EMAILJS_SERVICE_ID,
@@ -286,7 +305,6 @@ const Expenses: React.FC = () => {
         templateParams,
         import.meta.env.VITE_EMAILJS_USER_ID
       );
-  
       setIsLoading(false);
       setInviteModalOpen(false);
       setInviteEmail("");
@@ -300,14 +318,21 @@ const Expenses: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (groupId) {
+      setGroupFilter(groupId);
+      fetchGroupDetails();
+      fetchExpenses();
+      fetchSettlementTransactions();
+    }
+  }, [groupId]);
+
+  // Filter duplicate members (only include those with valid email)
+  const validMembers = groupDetails?.members.filter((member: any) => member.email) || [];
+  const uniqueMembers = Array.from(new Map(validMembers.map((member: any) => [member.email, member])).values());
+
   return (
     <AppLayout>
-      {successMessage && (
-        <div className="bg-green-500 text-white p-2 text-center mb-4">
-          {successMessage}
-        </div>
-      )}
-
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-semibold tracking-tight">
           Expenses for: {groupDetails ? groupDetails.name : "Loading..."}
@@ -334,10 +359,7 @@ const Expenses: React.FC = () => {
 
       <Tabs
         value={selectedTab}
-        onValueChange={(val) => {
-          console.log("Selected tab changed to:", val);
-          setSelectedTab(val);
-        }}
+        onValueChange={(val) => setSelectedTab(val)}
         className="w-full mb-6"
       >
         <TabsList className="grid w-full grid-cols-2">
@@ -363,9 +385,7 @@ const Expenses: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Groups</SelectItem>
-                  <SelectItem value={groupId ?? "all"}>
-                    Current Group
-                  </SelectItem>
+                  <SelectItem value={groupId ?? "all"}>Current Group</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -381,7 +401,7 @@ const Expenses: React.FC = () => {
                 <ExpenseCard
                   key={expense.ExpenseID || expense.id}
                   expense={expense}
-                  members={[]} // Adjust if you have member data
+                  members={[]} // Adjust if member data is available
                   onPaymentClick={() =>
                     handleProceedToPayment(expense.ExpenseID || expense.id)
                   }
@@ -405,17 +425,49 @@ const Expenses: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="payments" className="mt-4 space-y-4">
-          <div className="bg-muted/40 rounded-lg p-6 text-center">
-            <CreditCard className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="font-medium text-lg mb-2">Payment History</h3>
-            <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-              View and manage your expense payments. Your payment history will
-              appear here.
-            </p>
-            <Button variant="outline" disabled>
-              View All Transactions
-            </Button>
-          </div>
+          <SettleDebtsCard 
+            transactions={settlementTransactions}
+            onSettle={handleSettleDebts}
+            isSettling={isSettling}
+            currency={currency}
+          />
+          {settlementTransactions.length > 0 ? (
+            <div className="space-y-4">
+              {settlementTransactions.map((transaction) => (
+                <div 
+                  key={transaction.TransactionID}
+                  className="flex items-center justify-between p-4 border rounded-lg"
+                >
+                  <div className="flex-1">
+                    <span className="font-medium">{transaction.From}</span>
+                    <span className="mx-2">→</span>
+                    <span className="font-medium">{transaction.To}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="font-semibold">
+                      {currency.symbol}
+                      {parseFloat(transaction.Amount).toFixed(2)}
+                    </span>
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      transaction.Status === 'pending' 
+                        ? 'bg-yellow-100 text-yellow-800' 
+                        : 'bg-green-100 text-green-800'
+                    }`}>
+                      {transaction.Status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-muted/40 rounded-lg p-6 text-center">
+              <CreditCard className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="font-medium text-lg mb-2">No Settlement Transactions</h3>
+              <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+                Settle group debts to see transaction history here.
+              </p>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
@@ -488,10 +540,7 @@ const Expenses: React.FC = () => {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">UPI ID</label>
                   <div className="flex">
-                    <Input
-                      placeholder="yourname@upi"
-                      className="rounded-r-none"
-                    />
+                    <Input placeholder="yourname@upi" className="rounded-r-none" />
                     <Button className="rounded-l-none">Verify</Button>
                   </div>
                 </div>
@@ -503,17 +552,18 @@ const Expenses: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                <Button
-                  className="w-full"
-                  onClick={processPayment}
-                  disabled={isLoading}
-                >
+                <Button className="w-full" onClick={processPayment} disabled={isLoading}>
                   {isLoading ? (
-                    <Loader size="sm" className="mr-2" />
+                    <>
+                      <Loader size="sm" className="mr-2" />
+                      Processing...
+                    </>
                   ) : (
-                    <Smartphone className="mr-2 h-4 w-4" />
+                    <>
+                      <Smartphone className="mr-2 h-4 w-4" />
+                      Pay with UPI
+                    </>
                   )}
-                  {isLoading ? "Processing..." : "Pay with UPI"}
                 </Button>
               </TabsContent>
               <TabsContent value="card" className="mt-4 space-y-4">
@@ -531,17 +581,18 @@ const Expenses: React.FC = () => {
                     <Input placeholder="123" />
                   </div>
                 </div>
-                <Button
-                  className="w-full"
-                  onClick={processPayment}
-                  disabled={isLoading}
-                >
+                <Button className="w-full" onClick={processPayment} disabled={isLoading}>
                   {isLoading ? (
-                    <Loader size="sm" className="mr-2" />
+                    <>
+                      <Loader size="sm" className="mr-2" />
+                      Processing...
+                    </>
                   ) : (
-                    <CreditCard className="mr-2 h-4 w-4" />
+                    <>
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Pay with Card
+                    </>
                   )}
-                  {isLoading ? "Processing..." : "Pay with Card"}
                 </Button>
               </TabsContent>
             </Tabs>
@@ -584,24 +635,16 @@ const Expenses: React.FC = () => {
                     <SelectValue placeholder="Select group" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={groupId ?? "all"}>
-                      Current Group
-                    </SelectItem>
+                    <SelectItem value={groupId ?? "all"}>Current Group</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Message (Optional)
-                </label>
+                <label className="text-sm font-medium">Message (Optional)</label>
                 <Input placeholder="Join our expense group for the trip!" />
               </div>
             </div>
-            <Button
-              className="w-full"
-              onClick={sendInvite}
-              disabled={isLoading}
-            >
+            <Button className="w-full" onClick={sendInvite} disabled={isLoading}>
               {isLoading ? (
                 <Loader size="sm" className="mr-2" />
               ) : (

@@ -71,18 +71,12 @@ const ExpenseForm = ({
     useState<ExpenseCategory>("food");
   const [splitMethod, setSplitMethod] = useState<SplitMethod>("equal");
   const [expenseAmount, setExpenseAmount] = useState("");
-  const [splitPercentages, setSplitPercentages] = useState<{
-    [key: string]: string;
-  }>({});
-  const [splitAmounts, setSplitAmounts] = useState<{
-    [key: string]: string;
-  }>({});
+  const [splitPercentages, setSplitPercentages] = useState<{ [key: string]: string }>({});
+  const [splitAmounts, setSplitAmounts] = useState<{ [key: string]: string }>({});
   const [currency, setCurrency] = useState({ code: "USD", symbol: "$" });
   const [isDetectingLocation, setIsDetectingLocation] = useState(true);
-  // Store the image URL and file name for receipt preview.
-  const [receiptImageUrl, setReceiptImageUrl] = useState<string | null>(
-    selectedImage
-  );
+  // Receipt preview state
+  const [receiptImageUrl, setReceiptImageUrl] = useState<string | null>(selectedImage);
   const [receiptFileName, setReceiptFileName] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -100,9 +94,7 @@ const ExpenseForm = ({
         setIsDetectingLocation(true);
         const detectedCurrency = await detectUserCurrency();
         setCurrency(detectedCurrency);
-        toast.success(
-          `Currency set to ${detectedCurrency.code} based on your location`
-        );
+        toast.success(`Currency set to ${detectedCurrency.code} based on your location`);
       } catch (error) {
         console.error("Failed to detect currency:", error);
         toast.error("Could not detect your location. Using default currency.");
@@ -113,6 +105,7 @@ const ExpenseForm = ({
     detectCurrency();
   }, []);
 
+  // When using equal split, update percentages and amounts based on expenseAmount.
   useEffect(() => {
     if (group.members.length > 0 && expenseAmount && splitMethod === "equal") {
       const amt = parseFloat(expenseAmount);
@@ -175,24 +168,19 @@ const ExpenseForm = ({
     // Read category from form data:
     const category = formData.get("category") as ExpenseCategory;
 
-    // Basic checks for required fields
     if (!expenseName || isNaN(amt) || !rawDate || !category) {
       toast.error("Please fill in all required fields");
       setIsLoading(false);
       return;
     }
 
-    // Parse the date to handle both MM/DD/YYYY or YYYY-MM-DD
     let date: Date;
     if (rawDate.includes("-")) {
-      // Format: YYYY-MM-DD (common for <input type="date" />)
       date = new Date(rawDate);
     } else if (rawDate.includes("/")) {
-      // Format: MM/DD/YYYY
       const [month, day, year] = rawDate.split("/");
       date = new Date(+year, +month - 1, +day);
     } else {
-      // Fallback if user typed something else
       date = new Date(rawDate);
     }
 
@@ -202,11 +190,9 @@ const ExpenseForm = ({
       return;
     }
 
-    // Automatically set paidBy based on the authenticated user's email.
     const currentUserEmail = localStorage.getItem("email");
     const paidByValue =
-      group.members.find((member: Member) => member.email === currentUserEmail)
-        ?.id || "";
+      group.members.find((member: Member) => member.email === currentUserEmail)?.id || "";
 
     let splits;
     if (splitMethod === "equal") {
@@ -226,9 +212,7 @@ const ExpenseForm = ({
       }
       splits = group.members.map((member) => ({
         memberId: member.id,
-        amount: parseFloat(
-          (amt * (parseFloat(splitPercentages[member.id]) / 100)).toFixed(2)
-        ),
+        amount: parseFloat((amt * (parseFloat(splitPercentages[member.id]) / 100)).toFixed(2)),
         paid: member.id === paidByValue,
       }));
     } else if (splitMethod === "manual") {
@@ -254,26 +238,22 @@ const ExpenseForm = ({
       date: date.toISOString(),
       category,
       currency: currency.code,
-      // Updated key: use "GroupID" instead of "groupId"
       GroupID: group.id,
       paidBy: paidByValue,
       splits,
       description: (formData.get("description") as string) || undefined,
-      receiptImage: receiptImageUrl || undefined, // Optional receipt
+      receiptImage: receiptImageUrl || undefined,
     };
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_APP_API_URL}/api/expenses`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify(expenseData),
-        }
-      );
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/api/expenses`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(expenseData),
+      });
 
       if (!response.ok) throw new Error("Failed to create expense");
 
@@ -287,74 +267,48 @@ const ExpenseForm = ({
     }
   };
 
+  // Filter out any members with missing email and deduplicate based on email.
+  const validMembers = group.members.filter(member => member.email);
+  const uniqueMembers = Array.from(
+    new Map(validMembers.map((member) => [member.email, member])).values()
+  );
+
   return (
     <Card className="border-none shadow-subtle">
       <CardHeader>
         <CardTitle className="text-xl">Add New Expense</CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Upload Receipt Row with Clear Field */}
+        {/* Upload Receipt Row */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleUploadReceipt}
-            >
+            <Button type="button" variant="outline" size="sm" onClick={handleUploadReceipt}>
               <ImageIcon className="mr-2 h-4 w-4" />
               Upload Receipt
             </Button>
             {receiptFileName && (
               <div className="flex items-center gap-2">
                 <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                <button
-                  onClick={handleViewReceipt}
-                  className="text-black underline"
-                  title="View Receipt"
-                >
+                <button onClick={handleViewReceipt} className="text-black underline" title="View Receipt">
                   {receiptFileName}
                 </button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="text-black"
-                  onClick={handleRemoveReceipt}
-                >
+                <Button variant="destructive" size="sm" className="text-black" onClick={handleRemoveReceipt}>
                   <X className="h-4 w-4 mr-1" />
                 </Button>
               </div>
             )}
           </div>
-          <div className="text-sm text-muted-foreground">
-            Fill Bill Automatically
-          </div>
-          <input
-            type="file"
-            name="receipt"
-            ref={fileInputRef}
-            className="hidden"
-            accept="image/*"
-            onChange={handleImageChange}
-          />
+          <div className="text-sm text-muted-foreground">Fill Bill Automatically</div>
+          <input type="file" name="receipt" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} />
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="grid grid-cols-1 md:grid-cols-2 gap-4"
-        >
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Expense Name */}
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="expense-name">Expense Name</Label>
             <div className="relative">
               <Hash className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-              <Input
-                id="expense-name"
-                name="expense-name"
-                placeholder="Dinner, Movie Tickets, etc."
-                className="pl-10"
-                required
-              />
+              <Input id="expense-name" name="expense-name" placeholder="Dinner, Movie Tickets, etc." className="pl-10" required />
             </div>
           </div>
 
@@ -366,9 +320,7 @@ const ExpenseForm = ({
                 {isDetectingLocation ? (
                   <div className="h-4 w-4 border-2 border-t-transparent border-muted-foreground rounded-full animate-spin"></div>
                 ) : (
-                  <span className="text-base font-medium">
-                    {currency.symbol}
-                  </span>
+                  <span className="text-base font-medium">{currency.symbol}</span>
                 )}
               </div>
               <Input
@@ -391,25 +343,17 @@ const ExpenseForm = ({
             <Label htmlFor="date">Date</Label>
             <div className="relative">
               <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-              <Input
-                id="date"
-                name="date"
-                type="date"
-                className="pl-10"
-                required
-              />
+              <Input id="date" name="date" type="date" className="pl-10" required />
             </div>
           </div>
 
-          {/* Category and Split Method in one row */}
+          {/* Category and Split Method */}
           <div className="md:col-span-2 grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
               <Select
                 value={selectedCategory}
-                onValueChange={(value) =>
-                  setSelectedCategory(value as ExpenseCategory)
-                }
+                onValueChange={(value) => setSelectedCategory(value as ExpenseCategory)}
               >
                 <SelectTrigger id="category" className="bg-white">
                   <Tag className="mr-2 h-4 w-4 text-muted-foreground" />
@@ -423,19 +367,11 @@ const ExpenseForm = ({
                   ))}
                 </SelectContent>
               </Select>
-              {/* Hidden input so formData has "category" */}
-              <input
-                type="hidden"
-                name="category"
-                value={selectedCategory}
-              />
+              <input type="hidden" name="category" value={selectedCategory} />
             </div>
             <div className="space-y-2">
               <Label>Split Method</Label>
-              <Select
-                value={splitMethod}
-                onValueChange={(value) => setSplitMethod(value as SplitMethod)}
-              >
+              <Select value={splitMethod} onValueChange={(value) => setSplitMethod(value as SplitMethod)}>
                 <SelectTrigger className="bg-white">
                   <SelectValue placeholder="Select split method" />
                 </SelectTrigger>
@@ -451,7 +387,7 @@ const ExpenseForm = ({
           {/* Split Between Members */}
           <div className="space-y-3 md:col-span-2">
             <Label>Split Between</Label>
-            {group.members.map((member: Member) => (
+            {uniqueMembers.map((member: Member) => (
               <div key={member.id} className="flex items-center justify-between">
                 <div className="flex items-center">
                   <Avatar className="h-8 w-8 mr-2">
@@ -460,17 +396,13 @@ const ExpenseForm = ({
                   </Avatar>
                   <div>
                     <p className="text-sm font-medium">{member.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {member.email}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{member.email}</p>
                   </div>
                 </div>
                 {splitMethod === "equal" && (
                   <div className="text-sm text-muted-foreground">
                     {expenseAmount
-                      ? `${currency.symbol}${(
-                          parseFloat(expenseAmount) / group.members.length
-                        ).toFixed(2)}`
+                      ? `${currency.symbol}${(parseFloat(expenseAmount) / uniqueMembers.length).toFixed(2)}`
                       : "Equal share"}
                   </div>
                 )}
@@ -534,7 +466,7 @@ const ExpenseForm = ({
 
           <Separator className="md:col-span-2" />
 
-          {/* Bottom Action Row: AR Scan (left) and Save Expense (right) */}
+          {/* Bottom Action Row */}
           <div className="md:col-span-2 flex justify-between items-center">
             {onARScan && (
               <Button onClick={onARScan} variant="outline" className="rounded-md">

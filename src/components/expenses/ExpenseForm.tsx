@@ -266,6 +266,10 @@ const ExpenseForm = ({
       const createdExpense = await response.json();
       onSave(createdExpense.expense);
       toast.success("Expense added successfully");
+      
+      // Automatically close the form after successful submission
+      onCancel();
+      
     } catch (error: any) {
       toast.error(error.message || "Failed to save expense");
     } finally {

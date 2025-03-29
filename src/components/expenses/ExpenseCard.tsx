@@ -63,12 +63,24 @@ const getCategoryIcon = (category: string) => {
   }
 };
 
-const formatDate = (date: Date): string => {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
+const formatDate = (date: Date | string | number): string => {
+  try {
+    const dateObj = date instanceof Date ? date : new Date(date);
+    
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) {
+      return 'Invalid date';
+    }
+    
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(dateObj);
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return "Invalid date";
+  }
 };
 
 const ExpenseCard = ({

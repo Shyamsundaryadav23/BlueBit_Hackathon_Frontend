@@ -36,62 +36,14 @@ import ExpenseCard from "@/components/expenses/ExpenseCard";
 import axios from "axios";
 import ARScanDialog from "@/components/arscan/ARScanDialogue";
 import { SettleDebtsCard } from "@/components/settledebt/SettleDebtsCard";
-import { Expense, Group, Member, Transaction } from "@/utils/mockData";
 
-// Define a type for memberMap (mapping userId to { name, email })
+import { Expense, Group, Member, Transaction } from "@/utils/mockData";
+import { ErrorBoundary } from "@/components/errorr/ErrorrBoundary";
+import { ChatRoom } from "@/components/chatroom/ChatRoom";
+
 interface MemberMap {
   [key: string]: { name: string; email: string };
 }
-
-// A simple chat component. Replace with your own real-time chat implementation later.
-const ChatRoom: React.FC = () => {
-  const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
-  const [newMessage, setNewMessage] = useState("");
-
-  const handleSend = () => {
-    if (newMessage.trim()) {
-      const sender = localStorage.getItem("email") || "Unknown";
-      setMessages((prev) => [...prev, { sender, text: newMessage }]);
-      setNewMessage("");
-    }
-  };
-
-  return (
-    <div className="flex flex-col h-full">
-      <div className="flex-grow overflow-auto p-4 space-y-2">
-        {messages.length === 0 ? (
-          <div className="text-center text-muted-foreground">
-            No messages yet. Start chatting!
-          </div>
-        ) : (
-          messages.map((msg, index) => {
-            const isCurrentUser = msg.sender === (localStorage.getItem("email") || "");
-            return (
-              <div
-                key={index}
-                className={`max-w-xs p-2 rounded-lg ${isCurrentUser ? "bg-blue-500 text-white self-end" : "bg-gray-200 text-black self-start"}`}
-              >
-                <p className="text-sm">{msg.text}</p>
-              </div>
-            );
-          })
-        )}
-      </div>
-      <div className="p-4 border-t">
-        <div className="flex items-center gap-2">
-          <Input
-            type="text"
-            placeholder="Type a message..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            className="flex-grow"
-          />
-          <Button onClick={handleSend}>Send</Button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const Expenses: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
@@ -142,30 +94,18 @@ const Expenses: React.FC = () => {
     }
   };
 
-  // Compute memberMap from groupDetails for settlement view.
-  const computeMemberMap = (): MemberMap => {
-    const map: MemberMap = {};
-    if (groupDetails && groupDetails.members) {
-      groupDetails.members.forEach((member: any) => {
-        const id = member.userId || member.id;
-        if (member.email) {
-          // Here we map by email so that our settlement view shows names instead of raw IDs.
-          map[member.email] = { name: member.name, email: member.email };
-        }
-      });
-    }
-    return map;
-  };
-
   // Fetch expenses for the group
   const fetchExpenses = async () => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
       if (!token || !groupId) throw new Error("No token or group ID found");
-      const response = await axios.get(`${apiUrl}/api/expenses/group/${groupId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        `${apiUrl}/api/expenses/group/${groupId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       const groupExpenses: Expense[] = response.data.map((expense: any) => ({
         id: expense.ExpenseID,
         ExpenseID: expense.ExpenseID,
@@ -197,9 +137,12 @@ const Expenses: React.FC = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token || !groupId) return;
-      const response = await fetch(`${apiUrl}/api/transactions/group/${groupId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetch(
+        `${apiUrl}/api/transactions/group/${groupId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       if (!response.ok) throw new Error("Failed to fetch transactions");
       const data = await response.json();
       setSettlementTransactions(data.transactions || []);
@@ -244,7 +187,8 @@ const Expenses: React.FC = () => {
       filtered = filtered.filter(
         (expense) =>
           expense.name.toLowerCase().includes(searchLower) ||
-          (expense.category && expense.category.toLowerCase().includes(searchLower))
+          (expense.category &&
+            expense.category.toLowerCase().includes(searchLower))
       );
     }
     setFilteredExpenses(filtered);
@@ -282,7 +226,6 @@ const Expenses: React.FC = () => {
 
   // Create a new expense (handled by ExpenseForm)
   const handleCreateExpense = (createdExpense: Expense) => {
-    // Optionally update local state
     setExpenses((prev) => [...prev, createdExpense]);
     setFilteredExpenses((prev) => [...prev, createdExpense]);
     toast.success("Expense added successfully");
@@ -294,7 +237,7 @@ const Expenses: React.FC = () => {
     setPaymentModalOpen(true);
   };
 
-  // Invite dialog functions (for inviting new members)
+  // Send invite function
   const sendInvite = async () => {
     if (!inviteEmail) {
       toast.error("Please enter an email address");
@@ -334,67 +277,14 @@ const Expenses: React.FC = () => {
     }
   }, [groupId]);
 
-  // Filter duplicate members (only include those with valid email) from groupDetails
-  const validMembers = groupDetails?.members.filter((member: any) => member.email) || [];
-  const uniqueMembers = Array.from(new Map(validMembers.map((member: any) => [member.email, member])).values());
-
   // Compute memberMap to pass to SettleDebtsCard (mapping email -> { name, email })
-  const memberMap = groupDetails?.members.reduce((map: any, member: any) => {
-    if (member.email) {
-      map[member.email] = { name: member.name, email: member.email };
-    }
-    return map;
-  }, {}) || {};
-
-  // --- Realtime Chat Component ---
-  const ChatRoom: React.FC = () => {
-    const [messages, setMessages] = useState<{ sender: string; text: string }[]>([]);
-    const [newMessage, setNewMessage] = useState("");
-
-    const handleSend = () => {
-      if (newMessage.trim()) {
-        const sender = localStorage.getItem("email") || "Unknown";
-        setMessages((prev) => [...prev, { sender, text: newMessage }]);
-        setNewMessage("");
+  const memberMap =
+    groupDetails?.members.reduce((map: any, member: any) => {
+      if (member.email) {
+        map[member.email] = { name: member.name, email: member.email };
       }
-    };
-
-    return (
-      <div className="flex flex-col h-full">
-        <div className="flex-grow overflow-auto p-4 space-y-2">
-          {messages.length === 0 ? (
-            <div className="text-center text-muted-foreground">
-              No messages yet. Start chatting!
-            </div>
-          ) : (
-            messages.map((msg, index) => {
-              const isCurrentUser = msg.sender === (localStorage.getItem("email") || "");
-              return (
-                <div
-                  key={index}
-                  className={`max-w-xs p-2 rounded-lg ${isCurrentUser ? "bg-blue-500 text-white self-end" : "bg-gray-200 text-black self-start"}`}
-                >
-                  <p className="text-sm">{msg.text}</p>
-                </div>
-              );
-            })
-          )}
-        </div>
-        <div className="p-4 border-t">
-          <div className="flex items-center gap-2">
-            <Input
-              type="text"
-              placeholder="Type a message..."
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              className="flex-grow"
-            />
-            <Button onClick={handleSend}>Send</Button>
-          </div>
-        </div>
-      </div>
-    );
-  };
+      return map;
+    }, {}) || {};
 
   return (
     <AppLayout>
@@ -403,7 +293,11 @@ const Expenses: React.FC = () => {
           Expenses for: {groupDetails ? groupDetails.name : "Loading..."}
         </h1>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setInviteModalOpen(true)} className="rounded-md">
+          <Button
+            variant="outline"
+            onClick={() => setInviteModalOpen(true)}
+            className="rounded-md"
+          >
             <UserPlus className="mr-2 h-4 w-4" />
             Invite Member
           </Button>
@@ -419,7 +313,11 @@ const Expenses: React.FC = () => {
       </div>
 
       {/* Tabs: Expenses, Payments, and Chat */}
-      <Tabs value={selectedTab} onValueChange={(val) => setSelectedTab(val)} className="w-full mb-6">
+      <Tabs
+        value={selectedTab}
+        onValueChange={(val) => setSelectedTab(val)}
+        className="w-full mb-6"
+      >
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
           <TabsTrigger value="payments">Payments</TabsTrigger>
@@ -444,7 +342,9 @@ const Expenses: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Groups</SelectItem>
-                  <SelectItem value={groupId ?? "all"}>Current Group</SelectItem>
+                  <SelectItem value={groupId ?? "all"}>
+                    Current Group
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -456,9 +356,9 @@ const Expenses: React.FC = () => {
             </div>
           ) : filteredExpenses.length > 0 ? (
             <div className="space-y-4">
-              {filteredExpenses.map((expense: Expense) => (
+              {filteredExpenses.map((expense, index) => (
                 <ExpenseCard
-                  key={expense.id}
+                  key={`${expense.id}-${index}`}
                   expense={expense}
                   members={[]} // Adjust if member data is available
                   onPaymentClick={() => handleProceedToPayment(expense.id)}
@@ -491,8 +391,11 @@ const Expenses: React.FC = () => {
           />
           {settlementTransactions.length > 0 ? (
             <div className="space-y-4">
-              {settlementTransactions.map((transaction) => (
-                <div key={transaction.TransactionID} className="flex items-center justify-between p-4 border rounded-lg">
+              {settlementTransactions.map((transaction, index) => (
+                <div
+                  key={`${transaction.TransactionID}-${index}`}
+                  className="flex items-center justify-between p-4 border rounded-lg"
+                >
                   <div className="flex-1">
                     <span className="font-medium">
                       {memberMap[transaction.From]
@@ -508,13 +411,16 @@ const Expenses: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="font-semibold">
-                      {currency.symbol}{parseFloat(transaction.Amount).toFixed(2)}
+                      {currency.symbol}
+                      {parseFloat(transaction.Amount).toFixed(2)}
                     </span>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      transaction.Status === "pending"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-green-100 text-green-800"
-                    }`}>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs ${
+                        transaction.Status === "pending"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-green-100 text-green-800"
+                      }`}
+                    >
                       {transaction.Status}
                     </span>
                   </div>
@@ -524,7 +430,9 @@ const Expenses: React.FC = () => {
           ) : (
             <div className="bg-muted/40 rounded-lg p-6 text-center">
               <CreditCard className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="font-medium text-lg mb-2">No Settlement Transactions</h3>
+              <h3 className="font-medium text-lg mb-2">
+                No Settlement Transactions
+              </h3>
               <p className="text-muted-foreground mb-4 max-w-md mx-auto">
                 Settle group debts to see transaction history here.
               </p>
@@ -533,7 +441,13 @@ const Expenses: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="chat" className="mt-4 h-[400px]">
-          <ChatRoom />
+          {groupId ? (
+            <ErrorBoundary>
+              <ChatRoom groupId={groupId} />
+            </ErrorBoundary>
+          ) : (
+            <div className="text-center">Loading chat...</div>
+          )}
         </TabsContent>
       </Tabs>
 
@@ -544,7 +458,9 @@ const Expenses: React.FC = () => {
             <DialogTitle>Add New Expense</DialogTitle>
           </VisuallyHidden>
           <VisuallyHidden asChild>
-            <DialogDescription>Fill out the form to add a new expense.</DialogDescription>
+            <DialogDescription>
+              Fill out the form to add a new expense.
+            </DialogDescription>
           </VisuallyHidden>
           <div className="p-6">
             {groupDetails ? (
@@ -569,12 +485,16 @@ const Expenses: React.FC = () => {
             <DialogTitle>Complete Payment</DialogTitle>
           </VisuallyHidden>
           <VisuallyHidden asChild>
-            <DialogDescription>Choose your preferred payment method.</DialogDescription>
+            <DialogDescription>
+              Choose your preferred payment method.
+            </DialogDescription>
           </VisuallyHidden>
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold mb-2">Complete Payment</h2>
-              <p className="text-muted-foreground">Choose your preferred payment method.</p>
+              <p className="text-muted-foreground">
+                Choose your preferred payment method.
+              </p>
             </div>
             <div className="p-4 bg-muted rounded-lg">
               <div className="flex justify-between mb-2">
@@ -600,17 +520,26 @@ const Expenses: React.FC = () => {
                 <div className="space-y-2">
                   <label className="text-sm font-medium">UPI ID</label>
                   <div className="flex">
-                    <Input placeholder="yourname@upi" className="rounded-r-none" />
+                    <Input
+                      placeholder="yourname@upi"
+                      className="rounded-r-none"
+                    />
                     <Button className="rounded-l-none">Verify</Button>
                   </div>
                 </div>
                 <div className="flex items-center justify-center p-6 border-2 border-dashed rounded-lg">
                   <div className="text-center">
                     <Smartphone className="h-10 w-10 mx-auto mb-2 text-primary" />
-                    <p className="text-sm text-muted-foreground">Scan QR code with your UPI app</p>
+                    <p className="text-sm text-muted-foreground">
+                      Scan QR code with your UPI app
+                    </p>
                   </div>
                 </div>
-                <Button className="w-full" onClick={processPayment} disabled={isLoading}>
+                <Button
+                  className="w-full"
+                  onClick={processPayment}
+                  disabled={isLoading}
+                >
                   {isLoading ? (
                     <>
                       <Loader size="sm" className="mr-2" />
@@ -639,7 +568,11 @@ const Expenses: React.FC = () => {
                     <Input placeholder="123" />
                   </div>
                 </div>
-                <Button className="w-full" onClick={processPayment} disabled={isLoading}>
+                <Button
+                  className="w-full"
+                  onClick={processPayment}
+                  disabled={isLoading}
+                >
                   {isLoading ? (
                     <>
                       <Loader size="sm" className="mr-2" />
@@ -665,12 +598,16 @@ const Expenses: React.FC = () => {
             <DialogTitle>Invite Member</DialogTitle>
           </VisuallyHidden>
           <VisuallyHidden asChild>
-            <DialogDescription>Send an invitation to join your expense group.</DialogDescription>
+            <DialogDescription>
+              Send an invitation to join your expense group.
+            </DialogDescription>
           </VisuallyHidden>
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold mb-2">Invite Member</h2>
-              <p className="text-muted-foreground">Send an invitation to join your expense group.</p>
+              <p className="text-muted-foreground">
+                Send an invitation to join your expense group.
+              </p>
             </div>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -689,16 +626,24 @@ const Expenses: React.FC = () => {
                     <SelectValue placeholder="Select group" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={groupId ?? "all"}>Current Group</SelectItem>
+                    <SelectItem value={groupId ?? "all"}>
+                      Current Group
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Message (Optional)</label>
+                <label className="text-sm font-medium">
+                  Message (Optional)
+                </label>
                 <Input placeholder="Join our expense group for the trip!" />
               </div>
             </div>
-            <Button className="w-full" onClick={sendInvite} disabled={isLoading}>
+            <Button
+              className="w-full"
+              onClick={sendInvite}
+              disabled={isLoading}
+            >
               {isLoading ? (
                 <Loader size="sm" className="mr-2" />
               ) : (
@@ -711,7 +656,10 @@ const Expenses: React.FC = () => {
       </Dialog>
 
       {/* AR Scan Dialog */}
-      <ARScanDialog isOpen={isARScanOpen} onClose={() => setIsARScanOpen(false)} />
+      <ARScanDialog
+        isOpen={isARScanOpen}
+        onClose={() => setIsARScanOpen(false)}
+      />
     </AppLayout>
   );
 };

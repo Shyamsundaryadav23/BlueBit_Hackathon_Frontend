@@ -1,15 +1,21 @@
-import { useState } from 'react';
+import { useState } from "react";
 import emailjs from "@emailjs/browser";
-import { Users, Info, Plus, Mail } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getInitials, getRandomId } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import CustomButton from '../ui/CustomButton';
+import { Users, Info, Plus, Mail } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getInitials, getRandomId } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import CustomButton from "../ui/CustomButton";
 
 interface GroupFormProps {
   onSave: () => void;
@@ -25,8 +31,8 @@ const getStoredValue = (key: string) => {
 const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [groupInfo, setGroupInfo] = useState({
-    name: '',
-    description: '',
+    name: "",
+    description: "",
   });
   // Store invited member emails entered by the user.
   const [invitedEmails, setInvitedEmails] = useState<string[]>([]);
@@ -35,13 +41,15 @@ const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
 
   // Automatically include the current user's details from localStorage.
   const currentUser = {
-    id: getRandomId(),
+    id: getStoredValue("userId") || getRandomId(),
     email: getStoredValue("email"),
     name: getStoredValue("name"),
     avatar: getStoredValue("picture"),
   };
 
-  const handleGroupInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleGroupInfoChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { id, value } = e.target;
     setGroupInfo((prevState) => ({
       ...prevState,
@@ -49,25 +57,45 @@ const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
     }));
   };
 
-  const handleInvitedEmailInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInvitedEmailInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     setInvitedEmailInput(e.target.value);
   };
 
   // Add the email from the input field to the invitedEmails array.
   const handleAddInvitedEmail = () => {
     const email = invitedEmailInput.trim();
-    if (email !== "" && !invitedEmails.includes(email)) {
-      setInvitedEmails((prev) => [...prev, email]);
-      toast.success(`Member ${email} added to invitation list.`);
+    if (email === "") return;
+
+    // Don't allow adding the current user's email
+    if (email === currentUser.email) {
+      toast.error("You are already a member of this group");
       setInvitedEmailInput("");
-    } else if (invitedEmails.includes(email)) {
-      toast.error("This email has already been added.");
+      return;
     }
+
+    if (invitedEmails.includes(email)) {
+      toast.error("This email has already been added");
+      setInvitedEmailInput("");
+      return;
+    }
+
+    setInvitedEmails((prev) => [...prev, email]);
+    toast.success(`Member ${email} added to invitation list`);
+    setInvitedEmailInput("");
+  };
+
+  // Remove an email from the invited list
+  const handleRemoveInvitedEmail = (emailToRemove: string) => {
+    setInvitedEmails(invitedEmails.filter((email) => email !== emailToRemove));
   };
 
   // Function to send verification email using EmailJS.
   const sendVerificationEmail = async (email: string, token: string) => {
-    const verificationLink = `${import.meta.env.VITE_APP_API_URL}/token=${token}`;
+    const verificationLink = `${
+      import.meta.env.VITE_APP_API_URL
+    }/token=${token}`;
     const emailParams = {
       user_email: email,
       verification_link: verificationLink,
@@ -89,66 +117,65 @@ const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Build the members list: current user plus invited emails (filtering duplicates).
-    const members = [
-      {
-        id: currentUser.id,
-        email: currentUser.email,
-        name: currentUser.name,
-        avatar: currentUser.avatar,
-      },
-      ...invitedEmails
-        .filter((email) => email !== currentUser.email)
-        .map((email) => ({
-          id: getRandomId(),
-          email,
-          name: null,
-          avatar: null,
-        })),
-    ];
-
-    const groupData = {
-      GroupID: getRandomId(),
-      name: groupInfo.name,
-      description: groupInfo.description || '',
-      members,
-      createdAt: new Date().toISOString(),
-    };
-
-    const apiUrl = `http://127.0.0.1:5000/api/groups`;
-    console.log('API URL:', apiUrl);
-    console.log('Group Data:', groupData);
-
     try {
-      const token = localStorage.getItem('token');
-      console.log('Token:', token);
+      // IMPORTANT: Create members array WITHOUT the current user
+      // The backend will add the current user automatically
+      const members = invitedEmails.map((email) => ({
+        id: getRandomId(),
+        email: email,
+        name: null,
+        avatar: null,
+      }));
+
+      const groupData = {
+        name: groupInfo.name,
+        description: groupInfo.description || "",
+        members: members, // Only send invited members, not current user
+        createdAt: new Date().toISOString(),
+      };
+
+      const apiUrl = `http://127.0.0.1:5000/api/groups`;
+      console.log("Members count:", members.length);
+      console.log("Group Data:", groupData);
+
+      const token = localStorage.getItem("token");
       const response = await fetch(apiUrl, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(groupData),
       });
-      const result = await response.json();
-      console.log('API Response:', result);
-      if (response.ok) {
-        toast.success(result.message || 'Group created successfully');
 
-        // Send verification email to each invited member.
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success("Group created successfully");
+
+        // Send verification emails
         for (const email of invitedEmails) {
-          const verificationToken = btoa(email); // Example token.
+          const verificationToken = btoa(email);
           await sendVerificationEmail(email, verificationToken);
         }
+
         onSave();
       } else {
-        toast.error(result.error || 'Failed to create group');
+        toast.error(result.error || "Failed to create group");
       }
     } catch (error) {
-      console.error('Error during API call:', error);
-      toast.error('An error occurred while creating the group');
+      console.error("Error during group creation:", error);
+      toast.error("An error occurred while creating the group");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Pressing Enter in the email input field should add the email
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddInvitedEmail();
     }
   };
 
@@ -190,25 +217,85 @@ const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
           <div className="space-y-2">
             <Label>Invite Members</Label>
             <div className="flex items-center gap-2">
-              <Input
-                type="email"
-                placeholder="Enter member email"
-                value={invitedEmailInput}
-                onChange={handleInvitedEmailInputChange}
-                className="w-full"
-              />
-              <Button type="button" size="sm" variant="outline" onClick={handleAddInvitedEmail}>
-                Add
+              <div className="relative w-full">
+                <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                <Input
+                  type="email"
+                  placeholder="Enter member email"
+                  value={invitedEmailInput}
+                  onChange={handleInvitedEmailInputChange}
+                  onKeyDown={handleKeyDown}
+                  className="pl-10 w-full"
+                />
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleAddInvitedEmail}
+              >
+                <Plus className="h-4 w-4 mr-1" /> Add
               </Button>
             </div>
+
+            {/* Display current user as first member */}
+            <div className="mt-4">
+              <p className="text-sm font-medium mb-2">Group Members:</p>
+              <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                <Avatar className="h-8 w-8">
+                  {currentUser.avatar ? (
+                    <AvatarImage
+                      src={currentUser.avatar}
+                      alt={currentUser.name}
+                    />
+                  ) : (
+                    <AvatarFallback>
+                      {getInitials(currentUser.name || "You")}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">
+                    {currentUser.name || "You"} (You)
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {currentUser.email}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Display invited emails */}
             {invitedEmails.length > 0 && (
-              <ul className="mt-2 space-y-1">
-                {invitedEmails.map((email, idx) => (
-                  <li key={idx} className="flex items-center gap-1 text-sm">
-                    <Mail className="h-4 w-4" /> {email}
-                  </li>
-                ))}
-              </ul>
+              <div className="mt-2">
+                <p className="text-sm font-medium mb-2">Invited Members:</p>
+                <ul className="space-y-2">
+                  {invitedEmails.map((email, idx) => (
+                    <li
+                      key={idx}
+                      className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback>
+                            {email.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">{email}</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveInvitedEmail(email)}
+                        className="h-7 text-red-500 hover:text-red-700"
+                      >
+                        Remove
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
         </form>

@@ -191,17 +191,14 @@ const ExpenseForm = ({
     }
 
     const currentUserEmail = localStorage.getItem("email");
-    // Lookup current user's userID using email; here we assume group.members include a userId field.
     const currentUserID =
       group.members.find((member: Member) => member.email === currentUserEmail)?.userId ||
       group.members.find((member: Member) => member.email === currentUserEmail)?.id ||
       "";
-      
-    // Build splits; instead of using member.id, use member.userId if available.
+
     let splits;
     if (splitMethod === "equal") {
       splits = group.members.map((member) => ({
-        // Use userId if available, else fallback to member.id.
         memberId: member.userId || member.id,
         amount: parseFloat((amt / group.members.length).toFixed(2)),
         paid: (member.userId || member.id) === currentUserID,
@@ -400,7 +397,7 @@ const ExpenseForm = ({
           <div className="space-y-3 md:col-span-2">
             <Label>Split Between</Label>
             {uniqueMembers.map((member: Member) => (
-              <div key={member.id} className="flex items-center justify-between">
+              <div key={member.email || member.id} className="flex items-center justify-between">
                 <div className="flex items-center">
                   <Avatar className="h-8 w-8 mr-2">
                     <AvatarImage src={member.avatar} />

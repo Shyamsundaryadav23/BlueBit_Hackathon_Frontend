@@ -1,51 +1,45 @@
 import { Link } from "react-router-dom";
+import { DollarSign, Users, PieChart, ArrowRight } from "lucide-react";
 
 export function Landing() {
   return (
-    <div className="min-h-screen flex flex-col relative">
-      {/* Hero Section with Gradient Background */}
-      <div className="flex-1 bg-gradient-to-br from-blue-900 via-indigo-800 to-purple-900">
-        {/* Main Content */}
-        <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center min-h-screen text-center">
-          {/* Logo/Icon */}
-          {/* <div className="mb-8 bg-white p-4 rounded-full shadow-xl">
-            <svg className="w-16 h-16 text-blue-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-          </div> */}
-
-          {/* Logo/Icon */}
-          <div className="mb-6 bg-white p-0 rounded-full shadow-xl w-40 h-40 flex items-center justify-center">
-            <img
-              src="/logo_bluebit.png"
-              alt="App Logo"
-              className="w-full h-full object-cover rounded-full"
-            />
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      {/* Hero Section */}
+      <div className="container mx-auto px-4 pt-24 pb-16">
+        <div className="max-w-4xl mx-auto">
+          {/* Logo */}
+          <div className="mb-12 flex justify-center">
+            <div className="p-4 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 shadow-xl hover:shadow-2xl hover:scale-105 transform transition-all duration-300">
+              <DollarSign className="w-12 h-12 text-white" />
+            </div>
           </div>
 
           {/* Headline */}
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
-            SplitBro <br />
-            <span className="text-blue-300">Split Bills Effortlessly</span>
+          <h1 className="text-6xl font-bold text-center text-gray-900 mb-8 leading-tight tracking-tight">
+            Split Bills <br />
+            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text">
+              Without Drama
+            </span>
           </h1>
 
           {/* Subheadline */}
-          <p className="text-xl md:text-2xl text-blue-100 max-w-2xl mb-12 leading-relaxed">
-            Say goodbye to awkward money conversations. Manage shared expenses
-            with friends, roommates, and family in seconds.
+          <p className="text-xl text-gray-600 text-center max-w-2xl mx-auto mb-12 leading-relaxed">
+            Say goodbye to awkward money conversations. Split expenses with
+            friends, track balances, and settle up with ease.
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row sm:space-x-6 space-y-4 sm:space-y-0 w-full max-w-md">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-20">
             <Link
               to="/signup"
-              className="flex-1 px-8 py-4 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600 transition shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              className="group w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full font-medium hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
             >
-              Get Started
+              Get Started Free
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
               to="/signin"
-              className="flex-1 px-8 py-4 bg-white bg-opacity-10 text-black  font-extrabold border border-white border-opacity-30 backdrop-blur-sm rounded-lg  hover:bg-opacity-20 transition shadow-lg"
+              className="w-full sm:w-auto px-8 py-4 text-gray-900 font-medium rounded-full hover:bg-blue-50 transition-all duration-300 flex items-center justify-center"
             >
               Sign In
             </Link>
@@ -53,74 +47,47 @@ export function Landing() {
         </div>
       </div>
 
-      {/* Feature Highlights (optional - can be removed if you only want a pure hero section) */}
-      <div className="bg-white py-10 px-4">
-        <div className="container mx-auto max-w-5xl">
-          <div className="grid md:grid-cols-3 gap-8">
+      {/* Feature Section */}
+      <div className="border-t border-blue-100 py-24 bg-gradient-to-b from-white to-blue-50">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-3 gap-12 max-w-6xl mx-auto">
             {/* Feature 1 */}
-            <div className="text-center p-6">
-              <div className="w-12 h-12 mx-auto mb-4 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-6 h-6"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M12 2a10 10 0 1 0 10 10H12V2z" />
-                  <path d="M12 2a10 10 0 0 1 10 10" />
-                </svg>
+            <div className="group p-8 rounded-2xl bg-white shadow-sm hover:shadow-xl transition-all duration-300 hover:bg-gradient-to-b hover:from-white hover:to-blue-50">
+              <div className="w-14 h-14 mb-6 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <DollarSign className="w-7 h-7 text-white" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">Split Any Bill</h3>
-              <p className="text-gray-600">
-                Easily divide expenses equally or create custom splits in
-                seconds.
+              <h3 className="text-xl font-semibold mb-3 text-gray-900">
+                Smart Splitting
+              </h3>
+              <p className="text-gray-600 leading-relaxed">
+                Split bills equally or create custom splits with percentages and
+                fixed amounts.
               </p>
             </div>
 
             {/* Feature 2 */}
-            <div className="text-center p-6">
-              <div className="w-12 h-12 mx-auto mb-4 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-6 h-6"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                </svg>
+            <div className="group p-8 rounded-2xl bg-white shadow-sm hover:shadow-xl transition-all duration-300 hover:bg-gradient-to-b hover:from-white hover:to-blue-50">
+              <div className="w-14 h-14 mb-6 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <PieChart className="w-7 h-7 text-white" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">Track Balances</h3>
-              <p className="text-gray-600">
-                Always know who owes what with real-time balance tracking.
+              <h3 className="text-xl font-semibold mb-3 text-gray-900">
+                Real-time Tracking
+              </h3>
+              <p className="text-gray-600 leading-relaxed">
+                Always know who owes what with automatic balance calculations.
               </p>
             </div>
 
             {/* Feature 3 */}
-            <div className="text-center p-6">
-              <div className="w-12 h-12 mx-auto mb-4 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-6 h-6"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
+            <div className="group p-8 rounded-2xl bg-white shadow-sm hover:shadow-xl transition-all duration-300 hover:bg-gradient-to-b hover:from-white hover:to-blue-50">
+              <div className="w-14 h-14 mb-6 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                <Users className="w-7 h-7 text-white" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">Group Expenses</h3>
-              <p className="text-gray-600">
-                Create multiple groups for different events or living
-                situations.
+              <h3 className="text-xl font-semibold mb-3 text-gray-900">
+                Group Management
+              </h3>
+              <p className="text-gray-600 leading-relaxed">
+                Create unlimited groups for different events and trips.
               </p>
             </div>
           </div>

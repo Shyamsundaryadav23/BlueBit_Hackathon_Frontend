@@ -1,5 +1,3 @@
-import { getRandomId } from '@/lib/utils';
-
 // Types
 export type AuthUser = {
   id: string;
@@ -51,7 +49,8 @@ export type Expense = {
   description?: string;
   amount: number;
   currency: string;
-  paidBy: string; // memberId
+  // Now, paidBy stores the email of the payer (creator of the expense)
+  paidBy: string;
   date: Date;
   category: ExpenseCategory;
   splits: ExpenseSplit[];
@@ -60,70 +59,78 @@ export type Expense = {
   updatedAt: Date;
 };
 
-// Add to your existing mockData.ts
+// Transaction Types
 export type TransactionStatus = 'pending' | 'completed' | 'cancelled';
 
 export interface Transaction {
   TransactionID: string;
   GroupID: string;
-  From: string; // email of the payer
-  To: string;   // email of the payee
+  // These now hold the emails of the payer and payee respectively.
+  From: string;
+  To: string;
   Amount: string;
   Date: string;
   Status: TransactionStatus;
   CreatedBy: string;
 }
 
-// Helper functions for API calls (adjust URLs as needed)
+// Helper functions for API calls
 
-export const getUser = (): Promise<AuthUser> => {
-  return fetch('/api/user', {
+export const getUser = async (): Promise<AuthUser> => {
+  const r = await fetch('/api/user', {
     headers: { 'Content-Type': 'application/json' }
-  }).then((r) => r.json());
+  });
+  return await r.json();
 };
 
-export const getGroups = (): Promise<Group[]> => {
-  return fetch('/api/groups', {
+export const getGroups = async (): Promise<Group[]> => {
+  const r = await fetch('/api/groups', {
     headers: { 'Content-Type': 'application/json' }
-  }).then((r) => r.json());
+  });
+  return await r.json();
 };
 
-export const getExpenses = (groupId?: string): Promise<Expense[]> => {
+export const getExpenses = async (groupId?: string): Promise<Expense[]> => {
   let url = '/api/expenses';
   if (groupId) {
     url = `/api/expenses/group/${groupId}`;
   }
-  return fetch(url, {
+  const r = await fetch(url, {
     headers: { 'Content-Type': 'application/json' }
-  }).then((r) => r.json());
+  });
+  return await r.json();
 };
 
-export const getTransactions = (groupId?: string): Promise<Transaction[]> => {
+export const getTransactions = async (groupId?: string): Promise<Transaction[]> => {
   let url = '/api/transactions';
   if (groupId) {
     url = `/api/transactions/group/${groupId}`;
   }
-  return fetch(url, {
+  const r = await fetch(url, {
     headers: { 'Content-Type': 'application/json' }
-  }).then((r) => r.json());
+  });
+  return await r.json();
 };
 
-export const createExpense = (
+export const createExpense = async (
   expense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<Expense> => {
-  return fetch('/api/expenses', {
+  // Note: When creating an expense, the backend should store the creator's email in "paidBy".
+  const r = await fetch('/api/expenses', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(expense),
-  }).then((r) => r.json());
+  });
+  return await r.json();
 };
 
-export const createGroup = (
+export const createGroup = async (
   group: Omit<Group, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<Group> => {
-  return fetch('/api/groups', {
+  const r = await fetch('/api/groups', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(group),
-  }).then((r) => r.json());
+  });
+  return await r.json();
 };

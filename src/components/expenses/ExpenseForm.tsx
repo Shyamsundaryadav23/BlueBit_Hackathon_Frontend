@@ -67,8 +67,7 @@ const ExpenseForm = ({
   onARScan,
 }: ExpenseFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] =
-    useState<ExpenseCategory>("food");
+  const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory>("food");
   const [splitMethod, setSplitMethod] = useState<SplitMethod>("equal");
   const [expenseAmount, setExpenseAmount] = useState("");
   const [splitPercentages, setSplitPercentages] = useState<{ [key: string]: string }>({});
@@ -80,14 +79,17 @@ const ExpenseForm = ({
   const [receiptFileName, setReceiptFileName] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Use a safe members variable (fallback to empty array if undefined)
+  const members = group.members || [];
+
   // Log group members for debugging
   useEffect(() => {
-    if (group && group.id && group.members) {
-      group.members.forEach((member: any) => {
+    if (group && members.length > 0) {
+      members.forEach((member: any) => {
         console.log("Group member email:", member.email);
       });
     }
-  }, [group]);
+  }, [group, members]);
 
   useEffect(() => {
     const detectCurrency = async () => {
@@ -108,20 +110,20 @@ const ExpenseForm = ({
 
   // When using equal split, update percentages and amounts based on expenseAmount.
   useEffect(() => {
-    if (group.members.length > 0 && expenseAmount && splitMethod === "equal") {
+    if (members.length > 0 && expenseAmount && splitMethod === "equal") {
       const amt = parseFloat(expenseAmount);
-      const equalPercentage = (100 / group.members.length).toFixed(2);
-      const equalAmount = (amt / group.members.length).toFixed(2);
+      const equalPercentage = (100 / members.length).toFixed(2);
+      const equalAmount = (amt / members.length).toFixed(2);
       const newPercentages: { [key: string]: string } = {};
       const newAmounts: { [key: string]: string } = {};
-      group.members.forEach((member) => {
+      members.forEach((member) => {
         newPercentages[member.id] = equalPercentage;
         newAmounts[member.id] = equalAmount;
       });
       setSplitPercentages(newPercentages);
       setSplitAmounts(newAmounts);
     }
-  }, [expenseAmount, group.members, splitMethod]);
+  }, [expenseAmount, members, splitMethod]);
 
   const handleUploadReceipt = () => {
     if (fileInputRef.current) {
@@ -160,6 +162,8 @@ const ExpenseForm = ({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    // Prevent duplicate submissions.
+    if (isLoading) return;
     setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
@@ -192,19 +196,19 @@ const ExpenseForm = ({
 
     const currentUserEmail = localStorage.getItem("email");
     const currentUserID =
-      group.members.find((member: Member) => member.email === currentUserEmail)?.userId ||
-      group.members.find((member: Member) => member.email === currentUserEmail)?.id ||
+      members.find((member: Member) => member.email === currentUserEmail)?.userId ||
+      members.find((member: Member) => member.email === currentUserEmail)?.id ||
       "";
 
     let splits;
     if (splitMethod === "equal") {
-      splits = group.members.map((member) => ({
-        memberId: member.userId || member.id,
-        amount: parseFloat((amt / group.members.length).toFixed(2)),
-        paid: (member.userId || member.id) === currentUserID,
+      splits = members.map((member) => ({
+        memberId: member.email, // use email as the identifier
+        amount: parseFloat((amt / members.length).toFixed(2)),
+        paid: member.email === currentUserEmail,
       }));
     } else if (splitMethod === "percentage") {
-      const totalPercentage = group.members.reduce((sum, member) => {
+      const totalPercentage = members.reduce((sum, member) => {
         return sum + parseFloat(splitPercentages[member.id] || "0");
       }, 0);
       if (Math.abs(totalPercentage - 100) > 0.01) {
@@ -212,13 +216,13 @@ const ExpenseForm = ({
         setIsLoading(false);
         return;
       }
-      splits = group.members.map((member) => ({
-        memberId: member.userId || member.id,
+      splits = members.map((member) => ({
+        memberId: member.email,
         amount: parseFloat((amt * (parseFloat(splitPercentages[member.id]) / 100)).toFixed(2)),
-        paid: (member.userId || member.id) === currentUserID,
+        paid: member.email === currentUserEmail,
       }));
     } else if (splitMethod === "manual") {
-      const totalManual = group.members.reduce((sum, member) => {
+      const totalManual = members.reduce((sum, member) => {
         return sum + parseFloat(splitAmounts[member.id] || "0");
       }, 0);
       if (Math.abs(totalManual - amt) > 0.01) {
@@ -226,10 +230,10 @@ const ExpenseForm = ({
         setIsLoading(false);
         return;
       }
-      splits = group.members.map((member) => ({
-        memberId: member.userId || member.id,
+      splits = members.map((member) => ({
+        memberId: member.email,
         amount: parseFloat(splitAmounts[member.id]),
-        paid: (member.userId || member.id) === currentUserID,
+        paid: member.email === currentUserEmail,
       }));
     }
 
@@ -241,7 +245,7 @@ const ExpenseForm = ({
       category,
       currency: currency.code,
       GroupID: group.id,
-      paidBy: currentUserID,
+      paidBy: currentUserEmail, // use email for paidBy
       splits,
       description: (formData.get("description") as string) || undefined,
       receiptImage: receiptImageUrl || undefined,
@@ -270,7 +274,7 @@ const ExpenseForm = ({
   };
 
   // Filter duplicate members (only include those with valid email)
-  const validMembers = group.members.filter((member: any) => member.email);
+  const validMembers = (group.members || []).filter((member: any) => member.email);
   const uniqueMembers = Array.from(
     new Map(validMembers.map((member: any) => [member.email, member])).values()
   );
@@ -317,13 +321,7 @@ const ExpenseForm = ({
             <Label htmlFor="expense-name">Expense Name</Label>
             <div className="relative">
               <Hash className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-              <Input
-                id="expense-name"
-                name="expense-name"
-                placeholder="Dinner, Movie Tickets, etc."
-                className="pl-10"
-                required
-              />
+              <Input id="expense-name" name="expense-name" placeholder="Dinner, Movie Tickets, etc." className="pl-10" required />
             </div>
           </div>
 

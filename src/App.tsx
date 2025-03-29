@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect } from "react";
 import { Toaster as Sonner } from "sonner";
 import { TooltipProvider } from "@radix-ui/react-tooltip"; 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -19,18 +19,19 @@ const queryClient = new QueryClient();
 
 const App = () => {
   useEffect(() => {
-    const storedTheme = localStorage.getItem('theme');
-    if (storedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
+    // Check the user's theme preference from localStorage
+    const storedTheme = localStorage.getItem("theme");
+    if (storedTheme === "dark") {
+      document.documentElement.classList.add("dark");
     } else {
-      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.remove("dark");
     }
   }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Sonner position="top-right" theme="dark"/>
+        <Sonner position="top-right" theme="dark" />
         <AuthProvider>
           <div className="min-h-screen bg-white dark:bg-gray-900 dark:text-white transition-colors duration-300">
             <BrowserRouter>

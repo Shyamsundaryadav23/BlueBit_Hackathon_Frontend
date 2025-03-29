@@ -1,4 +1,3 @@
-// src/pages/Expenses.tsx
 import { useState, useRef, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import {
@@ -28,12 +27,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import emailjs from "emailjs-com";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ExpenseCard from "@/components/expenses/ExpenseCard";
 import axios from "axios";
+import ARScanDialog from "@/components/arscan/ARScanDialogue"; // Import ARScanDialog
 
 // Define ExpenseCategory union type
 type ExpenseCategory =
@@ -75,7 +76,6 @@ interface Group {
 const Expenses: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
   console.log("Expenses Page - groupId:", groupId);
-  const [scanMeDialogOpen] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([]);
   const [groupDetails, setGroupDetails] = useState<Group | null>(null);
@@ -87,10 +87,8 @@ const Expenses: React.FC = () => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(
-    null
-  );
-  const [successMessage, setSuccessMessage] = useState("");
+  const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
+  const [successMessage] = useState("");
   // State to control AR Scan dialog visibility.
   const [isARScanOpen, setIsARScanOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -184,11 +182,10 @@ const Expenses: React.FC = () => {
     setIsFormOpen(false);
   };
 
-  // AR Scan functionality stub – now opens the AR Scan dialog.
+  // AR Scan functionality – opens the AR Scan dialog.
   const handleARScan = () => {
     console.log("AR Scan triggered");
     setIsARScanOpen(true);
-    // Actual AR implementation will go here.
   };
 
   const handleCreateExpense = async (newExpenseData: Partial<Expense>) => {
@@ -268,27 +265,40 @@ const Expenses: React.FC = () => {
       });
     }, 2000);
   };
-
-  const sendInvite = () => {
+  const sendInvite = async () => {
     if (!inviteEmail) {
       toast.error("Please enter an email address");
       return;
     }
+  
     console.log("Sending invite to:", inviteEmail);
     setIsLoading(true);
-    setTimeout(() => {
+  
+    const templateParams = {
+      user_email: inviteEmail,
+      invite_link: `${import.meta.env.VITE_APP_API_URL}/invite?group=${groupId}`,
+    };
+  
+    try {
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        templateParams,
+        import.meta.env.VITE_EMAILJS_USER_ID
+      );
+  
       setIsLoading(false);
       setInviteModalOpen(false);
       setInviteEmail("");
       toast.success("Invitation sent", {
         description: `An invitation has been sent to ${inviteEmail}`,
       });
-    }, 1500);
+    } catch (error) {
+      console.error("Error sending email:", error);
+      setIsLoading(false);
+      toast.error("Failed to send invitation");
+    }
   };
-
-  function setScanMeDialogOpen(arg0: boolean): void {
-    throw new Error("Function not implemented.");
-  }
 
   return (
     <AppLayout>
@@ -541,7 +551,7 @@ const Expenses: React.FC = () => {
 
       {/* Invite Dialog */}
       <Dialog open={inviteModalOpen} onOpenChange={setInviteModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] bg-white shadow-lg border border-gray-200">
           <VisuallyHidden asChild>
             <DialogTitle>Invite Member</DialogTitle>
           </VisuallyHidden>
@@ -602,6 +612,9 @@ const Expenses: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* AR Scan Dialog */}
+      <ARScanDialog isOpen={isARScanOpen} onClose={() => setIsARScanOpen(false)} />
     </AppLayout>
   );
 };

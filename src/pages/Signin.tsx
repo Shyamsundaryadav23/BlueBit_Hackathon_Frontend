@@ -12,25 +12,18 @@ const Signin: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // While auth state is loading, you might return a loader or nothing.
   if (loading) {
-    return <Loader />;
+    return <Loader className="animate-spin mx-auto mt-20" size={32} />;
   }
 
-  // Only redirect if loading is complete and user is authenticated.
   if (!loading && isAuthenticated) {
     return <Navigate to="/dashboard" />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      // Your email/password sign-in logic here.
-      console.log('Signing in with:', { email, password });
-      navigate('/dashboard');
-    } catch (err) {
-      console.error('Sign in error:', err);
-    }
+    console.log('Signing in with:', { email, password });
+    navigate('/dashboard');
   };
 
   const handleGoogleSignIn = () => {
@@ -39,71 +32,50 @@ const Signin: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-md p-8 bg-white rounded shadow-md">
-        <h1 className="mb-6 text-2xl font-bold text-center text-blue-600">Sign In</h1>
+    <div className=" text-xl flex min-h-screen w-full bg-gray-200 items-center">
+      {/* Left side with full video */}
+      <div className="w-2/3 h-screen relative flex items-center justify-center p-4">
+      <div className="w-full h-full overflow-hidden rounded-lg shadow-2xl">
+      <video className="w-full h-full object-fit" style={{ objectFit: 'contain' }} autoPlay loop muted>
+            <source src="public\Splitbro_video - Made with Clipchamp.mp4" type="video/mp4" />
+          </video>
+        </div>
+      </div>
 
-        {error && (
-          <div className="p-4 mb-6 text-sm text-red-700 bg-red-100 rounded">
-            {error}
-          </div>
-        )}
+      {/* Right side with sign-in form, same height as video */}
+      <div className="w-1/3 h-screen flex items-center justify-center p-12 bg-white shadow-xl rounded-lg border border-gray-200 ml-6 ">
+        <div className="w-full max-w-md p-6 bg-gray-200 rounded-lg shadow-xl transform transition duration-500 hover:scale-105">
+          <img src="public\logo_bluebit.png" alt="Logo" className="mx-auto mb-6 w-30 rounded-full shadow-2xl" />
+          <h1 className="mb-6 text-4xl font-extrabold text-center text-blue-700">Sign In</h1>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <InputField
-            label="Email"
-            id="email"
-            type="email"
-            value={email}
-            onChange={setEmail}
-            icon={<Mail />}
-            required
-          />
-          <InputField
-            label="Password"
-            id="password"
-            type="password"
-            value={password}
-            onChange={setPassword}
-            icon={<Lock />}
-            required
-          />
-          <button
-            type="submit"
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            Sign In
-          </button>
-        </form>
+          {error && <div className="p-4 mb-4 text-lg text-red-700 bg-red-100 rounded shadow-md">{error}</div>}
 
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or continue with</span>
-            </div>
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <InputField label="Email" id="email" type="email" value={email} onChange={setEmail} icon={<Mail />} required />
+            <InputField label="Password" id="password" type="password" value={password} onChange={setPassword} icon={<Lock />} required />
+            <button className="w-full py-3 text-2xl text-white bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 rounded-lg shadow-md font-semibold transition-all duration-300">
+              Sign In
+            </button>
+          </form>
+
+          <div className="mt-6 text-center text-gray-600">Or continue with</div>
           <button
             onClick={handleGoogleSignIn}
-            className="mt-6 w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="mt-4 w-full flex items-center justify-center py-3 text-lg bg-white border border-gray-300 rounded-lg shadow-md hover:bg-gray-50 transition-all duration-300"
           >
             <img
               src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
               alt="Google logo"
-              className="h-5 w-5 mr-2"
+              className="h-6 w-6 mr-2"
             />
             Google
           </button>
-        </div>
 
-        <p className="mt-6 text-center text-sm text-gray-600">
-          Don't have an account?{' '}
-          <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">
-            Sign Up
-          </Link>
-        </p>
+          <p className="mt-6 text-center text-gray-600">
+            Don't have an account?{' '}
+            <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">Sign Up</Link>
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -111,16 +83,16 @@ const Signin: React.FC = () => {
 
 const InputField = ({ label, id, type, value, onChange, icon, required }: any) => (
   <div>
-    <label htmlFor={id} className="block text-sm font-medium text-gray-700">{label}</label>
-    <div className="relative mt-1 rounded-md shadow-sm">
-      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">{icon}</div>
+    <label htmlFor={id} className="block text-lg font-medium text-gray-700">{label}</label>
+    <div className="relative mt-2">
+      <div className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">{icon}</div>
       <input
         type={type}
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required={required}
-        className="block w-full pl-10 border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+        className="block w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 shadow-md text-lg bg-white"
       />
     </div>
   </div>

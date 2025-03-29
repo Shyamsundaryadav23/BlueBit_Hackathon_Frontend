@@ -1,4 +1,3 @@
-// src/components/layout/AppLayout.tsx
 import { ReactNode } from 'react';
 import { Header } from './Header';
 import { cn } from '@/lib/utils';
@@ -17,7 +16,8 @@ const AppLayout = ({ children, className, fullWidth = false, hideHeader = false 
   const shouldHideHeader = hideHeader || isHomePage;
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100">
+    // Updated container with dark variants
+    <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-gray-900 dark:text-white">
       {!shouldHideHeader && <Header />}
       <main
         className={cn(

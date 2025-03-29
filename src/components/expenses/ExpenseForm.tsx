@@ -1,13 +1,12 @@
-// src/components/expenses/ExpenseForm.tsx
 import { useState, useRef, useEffect } from "react";
 import {
   Calendar,
-  DollarSign,
   Hash,
-  Users,
-  FileText,
   Tag,
   Image as ImageIcon,
+  Camera,
+  X,
+  FileText,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +40,8 @@ interface ExpenseFormProps {
   onCancel: () => void;
   selectedImage?: string | null;
   onUploadReceipt?: () => void;
+  // Optional callback for AR Scan
+  onARScan?: () => void;
 }
 
 const categories: ExpenseCategory[] = [
@@ -63,59 +64,39 @@ const ExpenseForm = ({
   onCancel,
   selectedImage = null,
   onUploadReceipt,
+  onARScan,
 }: ExpenseFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  // Safely initialize paidBy; if no member exists, default to an empty string.
-  const [paidBy, setPaidBy] = useState(
-    (group.members && group.members.length > 0 && group.members[0].id) || ""
-  );
   const [selectedCategory, setSelectedCategory] =
     useState<ExpenseCategory>("food");
   const [splitMethod, setSplitMethod] = useState<SplitMethod>("equal");
   const [expenseAmount, setExpenseAmount] = useState("");
-  // For percentage/manual splits, store values per member as strings.
   const [splitPercentages, setSplitPercentages] = useState<{ [key: string]: string }>({});
   const [splitAmounts, setSplitAmounts] = useState<{ [key: string]: string }>({});
   const [currency, setCurrency] = useState({ code: "USD", symbol: "$" });
   const [isDetectingLocation, setIsDetectingLocation] = useState(true);
-  const [receiptImage, setReceiptImage] = useState<string | null>(selectedImage);
+  // Store the image URL and file name for receipt preview.
+  const [receiptImageUrl, setReceiptImageUrl] = useState<string | null>(selectedImage);
+  const [receiptFileName, setReceiptFileName] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Debug: Log received group details and fetch full group data from API.
   useEffect(() => {
-    console.log("ExpenseForm: Received group prop:", group);
-    if (group && group.id) {
-      fetch(`${import.meta.env.VITE_APP_API_URL}/api/groups/${group.id}`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          console.log("Fetched group details from API:", data);
-          if (data.members && data.members.length > 0) {
-            data.members.forEach((member: any) => {
-              console.log("Member email:", member.email);
-            });
-          } else {
-            console.log("Group has no members (from API).");
-          }
-        })
-        .catch((err) => console.error("Error fetching group details:", err));
-    } else {
-      console.log("No valid group provided to ExpenseForm");
+    if (group && group.id && group.members) {
+      group.members.forEach((member: any) => {
+        console.log("Group member email:", member.email);
+      });
     }
   }, [group]);
 
-  // Detect user currency on mount.
   useEffect(() => {
     const detectCurrency = async () => {
       try {
         setIsDetectingLocation(true);
         const detectedCurrency = await detectUserCurrency();
         setCurrency(detectedCurrency);
-        toast.success(`Currency set to ${detectedCurrency.code} based on your location`);
+        toast.success(
+          `Currency set to ${detectedCurrency.code} based on your location`
+        );
       } catch (error) {
         console.error("Failed to detect currency:", error);
         toast.error("Could not detect your location. Using default currency.");
@@ -126,7 +107,6 @@ const ExpenseForm = ({
     detectCurrency();
   }, []);
 
-  // Update equal splits when expenseAmount changes (for equal split method).
   useEffect(() => {
     if (group.members.length > 0 && expenseAmount && splitMethod === "equal") {
       const amt = parseFloat(expenseAmount);
@@ -140,7 +120,6 @@ const ExpenseForm = ({
       });
       setSplitPercentages(newPercentages);
       setSplitAmounts(newAmounts);
-      console.log("Equal splits updated:", newPercentages, newAmounts);
     }
   }, [expenseAmount, group.members, splitMethod]);
 
@@ -148,17 +127,34 @@ const ExpenseForm = ({
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
+    if (onUploadReceipt) {
+      onUploadReceipt();
+    }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const imageUrl = URL.createObjectURL(file);
-      console.log("Receipt image selected:", imageUrl);
-      setReceiptImage(imageUrl);
+      setReceiptImageUrl(imageUrl);
+      setReceiptFileName(file.name);
       toast.success("Receipt uploaded successfully", {
-        description: "Your receipt image has been attached to the expense",
+        description: "Your receipt has been attached to the expense",
       });
+    }
+  };
+
+  const handleRemoveReceipt = () => {
+    setReceiptImageUrl(null);
+    setReceiptFileName("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleViewReceipt = () => {
+    if (receiptImageUrl) {
+      window.open(receiptImageUrl, "_blank");
     }
   };
 
@@ -171,22 +167,18 @@ const ExpenseForm = ({
     const amt = parseFloat(expenseAmount);
     const date = new Date(formData.get("date") as string);
     const category = formData.get("category") as ExpenseCategory;
-    const paidByValue = formData.get("paidBy") as string;
 
-    console.log("FormData values:", {
-      expenseName,
-      amt,
-      date,
-      category,
-      paidByValue,
-      splitMethod,
-    });
-
-    if (!expenseName || isNaN(amt) || !date || !category || !paidByValue) {
+    if (!expenseName || isNaN(amt) || !date || !category) {
       toast.error("Please fill in all required fields");
       setIsLoading(false);
       return;
     }
+
+    // Automatically set paidBy based on the authenticated user's email.
+    const currentUserEmail = localStorage.getItem("email");
+    const paidByValue =
+      group.members.find((member: Member) => member.email === currentUserEmail)
+        ?.id || "";
 
     let splits;
     if (splitMethod === "equal") {
@@ -236,10 +228,8 @@ const ExpenseForm = ({
       paidBy: paidByValue,
       splits,
       description: (formData.get("description") as string) || undefined,
-      receiptImage: receiptImage || undefined,
+      receiptImage: receiptImageUrl || undefined,
     };
-
-    console.log("Constructed expenseData:", expenseData);
 
     try {
       const response = await fetch(
@@ -257,11 +247,9 @@ const ExpenseForm = ({
       if (!response.ok) throw new Error("Failed to create expense");
 
       const createdExpense = await response.json();
-      console.log("Expense created:", createdExpense);
       onSave(createdExpense.expense);
       toast.success("Expense added successfully");
     } catch (error: any) {
-      console.error("Error saving expense:", error);
       toast.error(error.message || "Failed to save expense");
     } finally {
       setIsLoading(false);
@@ -274,6 +262,52 @@ const ExpenseForm = ({
         <CardTitle className="text-xl">Add New Expense</CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Upload Receipt Row with Clear Field */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleUploadReceipt}
+            >
+              <ImageIcon className="mr-2 h-4 w-4" />
+              Upload Receipt
+            </Button>
+            {receiptFileName && (
+              <div className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                <button
+                  onClick={handleViewReceipt}
+                  className="text-black underline"
+                  title="View Receipt"
+                >
+                  {receiptFileName}
+                </button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="text-black"
+                  onClick={handleRemoveReceipt}
+                >
+                  <X className="h-4 w-4 mr-1" />
+                </Button>
+              </div>
+            )}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Fill Bill Automatically
+          </div>
+          <input
+            type="file"
+            name="receipt"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*"
+            onChange={handleImageChange}
+          />
+        </div>
+
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Expense Name */}
           <div className="space-y-2 md:col-span-2">
@@ -332,88 +366,45 @@ const ExpenseForm = ({
             </div>
           </div>
 
-          {/* Category */}
-          <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <Select
-              value={selectedCategory}
-              onValueChange={(value) => {
-                console.log("Category changed:", value);
-                setSelectedCategory(value as ExpenseCategory);
-              }}
-            >
-              <SelectTrigger id="category" className="bg-white">
-                <Tag className="mr-2 h-4 w-4 text-muted-foreground" />
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent className="bg-white">
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat} className="capitalize">
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Paid By */}
-          <div className="space-y-2 opacity-100">
-            <Label htmlFor="paidBy">Paid By</Label>
-            <Select
-              value={paidBy}
-              onValueChange={(value) => {
-                console.log("Paid By changed:", value);
-                setPaidBy(value);
-              }}
-            >
-              <SelectTrigger id="paidBy" className="bg-white  w-full">
-                <Users className="mr-2 h-4 w-4 text-muted" />
-                <SelectValue placeholder="Select who paid" />
-              </SelectTrigger>
-              <SelectContent className="bg-white">
-                {(group.members || []).map((member: Member) => (
-                  <SelectItem key={member.id} value={member.id}>
-                    <div className="flex flex-col">
-                      <div className="flex items-center">
-                        <Avatar className="h-6 w-6 mr-2">
-                          <AvatarImage src={member.avatar} />
-                          <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
-                        </Avatar>
-                        <span className="font-medium">{member.name}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground ml-8">
-                        {member.email}
-                      </p>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Hidden inputs for category and paidBy */}
-          <input type="hidden" name="category" value={selectedCategory} />
-          <input type="hidden" name="paidBy" value={paidBy} />
-
-          {/* Split Method Dropdown */}
-          <div className="space-y-2 md:col-span-2">
-            <Label>Split Method</Label>
-            <Select
-              value={splitMethod}
-              onValueChange={(value) => {
-                console.log("Split Method changed:", value);
-                setSplitMethod(value as SplitMethod);
-              }}
-            >
-              <SelectTrigger className="bg-white">
-                <SelectValue placeholder="Select split method" />
-              </SelectTrigger>
-              <SelectContent className="bg-white">
-                <SelectItem value="equal">Equal</SelectItem>
-                <SelectItem value="percentage">By Percentage</SelectItem>
-                <SelectItem value="manual">Manual</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Category and Split Method in one row */}
+          <div className="md:col-span-2 grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="category">Category</Label>
+              <Select
+                value={selectedCategory}
+                onValueChange={(value) =>
+                  setSelectedCategory(value as ExpenseCategory)
+                }
+              >
+                <SelectTrigger id="category" className="bg-white">
+                  <Tag className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent className="bg-white">
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat} className="capitalize">
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Split Method</Label>
+              <Select
+                value={splitMethod}
+                onValueChange={(value) => setSplitMethod(value as SplitMethod)}
+              >
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder="Select split method" />
+                </SelectTrigger>
+                <SelectContent className="bg-white">
+                  <SelectItem value="equal">Equal</SelectItem>
+                  <SelectItem value="percentage">By Percentage</SelectItem>
+                  <SelectItem value="manual">Manual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Split Between Members */}
@@ -482,42 +473,6 @@ const ExpenseForm = ({
             ))}
           </div>
 
-          {/* Receipt Image */}
-          <div className="space-y-2 md:col-span-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="receipt">Receipt Image (Optional)</Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleUploadReceipt}
-              >
-                <ImageIcon className="mr-2 h-4 w-4" />
-                Upload Receipt
-              </Button>
-              <input
-                type="file"
-                name="receipt"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*"
-                onChange={handleImageChange}
-              />
-            </div>
-            {receiptImage && (
-              <div className="mt-2 border rounded-md overflow-hidden">
-                <img
-                  src={receiptImage}
-                  alt="Receipt"
-                  className="w-full h-auto max-h-40 object-contain"
-                />
-                <div className="bg-muted p-2 text-center text-xs text-muted-foreground">
-                  Receipt image attached
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* Description */}
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="description">Description (Optional)</Label>
@@ -527,18 +482,21 @@ const ExpenseForm = ({
                 id="description"
                 name="description"
                 placeholder="Add notes or details about this expense"
-                className="pl-10 min-h-24"
+                className="pl-10 min-h-24 max-h-40 overflow-y-auto"
               />
             </div>
           </div>
 
           <Separator className="md:col-span-2" />
 
-          {/* Hidden splitEqually input */}
-          <input type="hidden" name="splitEqually" value="true" />
-
-          {/* Submit button */}
-          <div className="md:col-span-2 flex justify-end">
+          {/* Bottom Action Row: AR Scan (left) and Save Expense (right) */}
+          <div className="md:col-span-2 flex justify-between items-center">
+            {onARScan && (
+              <Button onClick={onARScan} variant="outline" className="rounded-md">
+                <Camera className="mr-2 h-4 w-4" />
+                AR Scan
+              </Button>
+            )}
             <CustomButton type="submit" isLoading={isLoading}>
               Save Expense
             </CustomButton>

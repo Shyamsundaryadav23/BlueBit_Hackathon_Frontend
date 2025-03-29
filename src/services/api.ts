@@ -1,4 +1,3 @@
-// src/services/api.ts
 import axios, { AxiosInstance } from 'axios';
 
 interface CustomAxiosInstance extends AxiosInstance {
@@ -13,13 +12,14 @@ const api = axios.create({
   },
 }) as CustomAxiosInstance;
 
-// Add auth token to requests
+// Add auth token to requests.
 api.setAuthToken = (token: string) => {
   if (token) {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   }
 };
 
+// Remove auth token.
 api.removeAuthToken = () => {
   delete api.defaults.headers.common['Authorization'];
 };

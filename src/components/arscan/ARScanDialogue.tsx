@@ -1,4 +1,3 @@
-// src/components/arscan/ARScanDialogue.tsx
 import React, { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -15,10 +14,13 @@ const ARScanDialog: React.FC<ARScanDialogProps> = ({ isOpen, onClose }) => {
   const [stream, setStream] = useState<MediaStream | null>(null);
 
   useEffect(() => {
+    let activeStream: MediaStream | null = null;
+
     if (isOpen) {
       navigator.mediaDevices
         .getUserMedia({ video: { facingMode: "user" } })
         .then((mediaStream) => {
+          activeStream = mediaStream;
           setStream(mediaStream);
           if (videoRef.current) {
             videoRef.current.srcObject = mediaStream;
@@ -27,12 +29,14 @@ const ARScanDialog: React.FC<ARScanDialogProps> = ({ isOpen, onClose }) => {
         .catch((error) => {
           console.error("Error accessing camera:", error);
         });
-    } else {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
+    }
+
+    return () => {
+      if (activeStream) {
+        activeStream.getTracks().forEach((track) => track.stop());
         setStream(null);
       }
-    }
+    };
   }, [isOpen]);
 
   return (

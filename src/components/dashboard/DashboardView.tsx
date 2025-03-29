@@ -1,4 +1,3 @@
-// src/components/dashboard/DashboardView.tsx
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -12,20 +11,24 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+// interface DashboardViewProps {
+//   totalExpenses: number;
+//   expensesPaid: number;
+//   expensesOwed: number;
+//   groups: { id: string; name: string; memberCount: number }[];
+//   groupBalances: { groupId: string; balance: number }[];
+//   recentActivity: { id: string; description: string; date: string }[];
+// }
 interface DashboardViewProps {
   totalExpenses: number;
   expensesPaid: number;
   expensesOwed: number;
-  groups: { id: string; name: string; memberCount: number }[];
-  groupBalances: { groupId: string; balance: number }[];
-  recentActivity: { id: string; description: string; date: string }[];
-  userBalances: {
-    userId: string;
-    name: string;
-    avatarUrl?: string;
-    balance: number;
-  }[];
+  groups: any[];  // You can replace 'any' with a more specific type
+  groupBalances: any[]; // You can replace 'any' with a more specific type
+  recentActivity: any[]; // You can replace 'any' with a more specific type
+  userBalances: { userId: string; name: string; balance: number }[];  // ✅ Add this line
 }
+
 
 const DashboardView: React.FC<DashboardViewProps> = ({
   totalExpenses,
@@ -39,98 +42,80 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   const expensesOwedPercentage = (expensesOwed / totalExpenses) * 100;
 
   return (
-    <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 items-stretch">
-      {/* Overview Section - full width */}
-      <Card className="col-span-1 md:col-span-2 lg:col-span-3 bg-white hover:shadow-xl transition-shadow duration-300">
+    <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 items-stretch p-6 bg-gradient-to-r from-blue-100 to-purple-100 min-h-screen">
+      {/* Overview Section */}
+      <Card className="col-span-1 md:col-span-2 lg:col-span-3 bg-white shadow-xl rounded-xl hover:shadow-2xl transition-all">
         <CardHeader>
-          <CardTitle className="text-2xl font-semibold">Overview</CardTitle>
+          <CardTitle className="text-3xl font-extrabold text-blue-800">
+            Overview
+          </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 grid-cols-1 md:grid-cols-3">
-          {[
-            { label: "Total Expenses", value: totalExpenses },
+        <CardContent className="grid gap-6 grid-cols-1 md:grid-cols-3">
+          {[{ label: "Total Expenses", value: totalExpenses },
             { label: "Expenses Paid", value: expensesPaid },
-            { label: "Expenses Owed", value: expensesOwed },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="flex flex-col items-center justify-center p-6 rounded-lg border border-gray-200 shadow-sm bg-gray-50"
-            >
-              <div className="text-3xl font-bold text-gray-800">
-                {item.value}
+            { label: "Expenses Owed", value: expensesOwed }]
+            .map((item) => (
+              <div key={item.label}
+                   className="flex flex-col items-center justify-center p-8 rounded-xl bg-gradient-to-r from-blue-300 to-purple-300 text-white shadow-lg">
+                <div className="text-4xl font-extrabold">{item.value}</div>
+                <div className="text-lg">{item.label}</div>
               </div>
-              <div className="text-sm text-gray-500">{item.label}</div>
-            </div>
           ))}
         </CardContent>
       </Card>
 
       {/* Expenses Breakdown Section */}
-      <Card className="bg-white hover:shadow-xl transition-shadow duration-300 col-span-1">
+      <Card className="bg-white shadow-xl rounded-xl hover:shadow-2xl transition-all">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">
+          <CardTitle className="text-xl font-semibold text-gray-800">
             Expenses Breakdown
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+        <CardContent className="flex flex-col gap-5">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Paid</span>
-            <span className="text-sm text-gray-500">
+            <span className="text-md font-medium text-gray-700">Paid</span>
+            <span className="text-md font-bold text-green-600">
               {expensesPaidPercentage.toFixed(1)}%
             </span>
           </div>
-          <Progress
-            value={expensesPaidPercentage}
-            className="h-2 rounded bg-green-200"
-          />
+          <Progress value={expensesPaidPercentage} className="h-3 rounded-lg bg-green-300" />
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Owed</span>
-            <span className="text-sm text-gray-500">
+            <span className="text-md font-medium text-gray-700">Owed</span>
+            <span className="text-md font-bold text-red-600">
               {expensesOwedPercentage.toFixed(1)}%
             </span>
           </div>
-          <Progress
-            value={expensesOwedPercentage}
-            className="h-2 rounded bg-red-200"
-          />
+          <Progress value={expensesOwedPercentage} className="h-3 rounded-lg bg-red-300" />
         </CardContent>
       </Card>
 
       {/* Group Balances Section */}
-      <Card className="bg-white hover:shadow-xl transition-shadow duration-300 col-span-1">
+      <Card className="bg-white shadow-xl rounded-xl hover:shadow-2xl transition-all">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">
+          <CardTitle className="text-xl font-semibold text-gray-800">
             Group Balances
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[220px] w-full rounded-md border border-gray-200">
+          <ScrollArea className="h-[220px] w-full rounded-lg border border-gray-300">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[120px] text-sm font-medium text-gray-700">
+                  <TableHead className="w-[120px] text-lg font-medium text-gray-700">
                     Group
                   </TableHead>
-                  <TableHead className="text-sm font-medium text-gray-700">
+                  <TableHead className="text-lg font-medium text-gray-700">
                     Balance
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {groupBalances.map((groupBalance) => {
-                  const group = groups.find(
-                    (g) => g.id === groupBalance.groupId
-                  );
+                  const group = groups.find((g) => g.id === groupBalance.groupId);
                   return (
-                    <TableRow
-                      key={groupBalance.groupId}
-                      className="hover:bg-gray-100 transition-colors"
-                    >
-                      <TableCell className="font-medium text-sm text-gray-800">
-                        {group?.name}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-800">
-                        {groupBalance.balance}
-                      </TableCell>
+                    <TableRow key={groupBalance.groupId} className="hover:bg-gray-200 transition-all">
+                      <TableCell className="font-bold text-md text-gray-900">{group?.name}</TableCell>
+                      <TableCell className="text-md font-bold text-gray-700">{groupBalance.balance}</TableCell>
                     </TableRow>
                   );
                 })}
@@ -145,29 +130,25 @@ const DashboardView: React.FC<DashboardViewProps> = ({
         <img
           src="src/assets/Cup.gif"
           alt="Bill Splitting Animation"
-          className="w-full h-full object-cover rounded-2xl"
+          className="w-full h-full object-cover rounded-2xl shadow-lg"
         />
       </CardContent>
 
-      {/* Recent Activity Section - full width */}
-      <Card className="col-span-1 md:col-span-2 lg:col-span-3 bg-white hover:shadow-xl transition-shadow duration-300">
+      {/* Recent Activity Section */}
+      <Card className="col-span-1 md:col-span-2 lg:col-span-3 bg-white shadow-2xl rounded-xl hover:shadow-3xl transition-all">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">
+          <CardTitle className="text-xl font-semibold text-gray-800">
             Recent Activity
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[220px] w-full rounded-md border border-gray-200">
-            <div className="divide-y divide-gray-200">
+          <ScrollArea className="h-[220px] w-full rounded-lg border border-gray-300">
+            <div className="divide-y divide-gray-300">
               {recentActivity.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="py-3 px-4 hover:bg-gray-50 transition-colors rounded"
-                >
-                  <p className="text-sm text-gray-800">
-                    {activity.description}
-                  </p>
-                  <p className="text-xs text-gray-500">{activity.date}</p>
+                <div key={activity.id}
+                     className="py-4 px-5 hover:bg-gray-100 transition-all rounded-lg">
+                  <p className="text-md font-medium text-gray-900">{activity.description}</p>
+                  <p className="text-sm text-gray-600">{activity.date}</p>
                 </div>
               ))}
             </div>

@@ -243,6 +243,7 @@
 
 
 import { useState } from 'react';
+import emailjs from "@emailjs/browser";
 import { Users, Mail, Info, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -306,6 +307,28 @@ const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
     );
   };
 
+  // Function to send verification email using EmailJS
+  const sendVerificationEmail = async (email: string, token: string) => {
+    const verificationLink = `${import.meta.env.VITE_APP_API_URL}/token=${token}`;
+  
+    const emailParams = {
+      user_email: email,
+      verification_link: verificationLink,
+    };
+  
+    try {
+      await emailjs.send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        emailParams,
+        import.meta.env.VITE_EMAILJS_USER_ID
+      );
+      console.log("Verification email sent successfully");
+    } catch (error) {
+      console.error("Failed to send email:", error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -345,6 +368,14 @@ const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
 
       if (response.ok) {
         toast.success(result.message || 'Group created successfully');
+
+        // Send verification email to each member
+        for (const member of groupData.members) {
+          if (member.email) {
+            const verificationToken = btoa(member.email); // Example token
+            await sendVerificationEmail(member.email, verificationToken);
+          }
+        }
         onSave();
       } else {
         toast.error(result.error || 'Failed to create group');
@@ -365,7 +396,7 @@ const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="group-name">Group Name</Label>
+            <Label htmlFor="name">Group Name</Label>
             <div className="relative">
               <Users className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
               <Input
@@ -378,6 +409,7 @@ const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
               />
             </div>
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="description">Description (Optional)</Label>
             <div className="relative">
@@ -391,72 +423,38 @@ const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
               />
             </div>
           </div>
+
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Group Members</Label>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={handleAddMember}
-                className="h-8 rounded-full text-xs"
-              >
-                <Plus className="h-3 w-3 mr-1" />
-                Add Member
-              </Button>
-            </div>
-            <div className="space-y-3">
-              {members.map((member, index) => (
-                <div key={member.id} className="flex items-center gap-2">
-                  <Avatar className="h-9 w-9 flex-shrink-0">
-                    {member.avatar ? (
-                      <AvatarImage src={member.avatar} />
-                    ) : null}
-                    <AvatarFallback>
-                      {member.name ? getInitials(member.name) : index === 0 ? 'You' : '?'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="relative flex-1">
-                    <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      value={member.email || ""}
-                      onChange={(e) => handleMemberChange(member.id, e.target.value)}
-                      placeholder="Email address"
-                      className="pl-9"
-                      type="email"
-                      disabled={index === 0}
-                      required
-                    />
-                  </div>
-                  {index > 0 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      className="h-9 w-9 rounded-full flex-shrink-0"
-                      onClick={() => handleRemoveMember(member.id)}
-                    >
-                      <span className="sr-only">Remove</span>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="lucide lucide-x"
-                      >
-                        <path d="M18 6 6 18"></path>
-                        <path d="m6 6 12 12"></path>
-                      </svg>
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
+            <Label>Group Members</Label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleAddMember}
+              className="h-8 rounded-full text-xs"
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              Add Member
+            </Button>
+
+            {members.map((member, index) => (
+              <div key={member.id} className="flex items-center gap-2">
+                <Avatar className="h-9 w-9 flex-shrink-0">
+                  {member.avatar ? <AvatarImage src={member.avatar} /> : null}
+                  <AvatarFallback>{member.name ? getInitials(member.name) : '?'}</AvatarFallback>
+                </Avatar>
+
+                <Input
+                  value={member.email || ""}
+                  onChange={(e) => handleMemberChange(member.id, e.target.value)}
+                  placeholder="Email address"
+                  className="pl-9"
+                  type="email"
+                  disabled={index === 0}
+                  required
+                />
+              </div>
+            ))}
           </div>
         </form>
       </CardContent>

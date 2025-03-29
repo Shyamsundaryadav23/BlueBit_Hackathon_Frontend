@@ -60,9 +60,13 @@ const Expenses: React.FC = () => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
+  const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(
+    null
+  );
   const [isARScanOpen, setIsARScanOpen] = useState(false);
-  const [settlementTransactions, setSettlementTransactions] = useState<Transaction[]>([]);
+  const [settlementTransactions, setSettlementTransactions] = useState<
+    Transaction[]
+  >([]);
   const [isSettling, setIsSettling] = useState(false);
   const [currency] = useState({ symbol: "$" });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -389,55 +393,6 @@ const Expenses: React.FC = () => {
             currency={currency}
             memberMap={memberMap}
           />
-          {settlementTransactions.length > 0 ? (
-            <div className="space-y-4">
-              {settlementTransactions.map((transaction, index) => (
-                <div
-                  key={`${transaction.TransactionID}-${index}`}
-                  className="flex items-center justify-between p-4 border rounded-lg"
-                >
-                  <div className="flex-1">
-                    <span className="font-medium">
-                      {memberMap[transaction.From]
-                        ? memberMap[transaction.From].name
-                        : transaction.From}
-                    </span>
-                    <span className="mx-2">→</span>
-                    <span className="font-medium">
-                      {memberMap[transaction.To]
-                        ? memberMap[transaction.To].name
-                        : transaction.To}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="font-semibold">
-                      {currency.symbol}
-                      {parseFloat(transaction.Amount).toFixed(2)}
-                    </span>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        transaction.Status === "pending"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-green-100 text-green-800"
-                      }`}
-                    >
-                      {transaction.Status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="bg-muted/40 rounded-lg p-6 text-center">
-              <CreditCard className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="font-medium text-lg mb-2">
-                No Settlement Transactions
-              </h3>
-              <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-                Settle group debts to see transaction history here.
-              </p>
-            </div>
-          )}
         </TabsContent>
 
         <TabsContent value="chat" className="mt-4 h-[400px]">

@@ -61,7 +61,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     dispatch({ type: 'SET_LOADING', payload: true });
     console.log("Redirecting to backend login endpoint...");
     // Redirect to your backend login endpoint.
-    window.location.href = 'http://localhost:5000/api/login';
+    window.location.href = `${import.meta.env.VITE_APP_API_URL}/api/login`;
+
   };
 
   const loadUser = async (): Promise<void> => {

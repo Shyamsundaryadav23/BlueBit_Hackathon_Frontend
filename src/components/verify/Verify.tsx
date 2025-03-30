@@ -12,7 +12,9 @@ const VerifyEmail = () => {
       return;
     }
 
-    fetch(`http://127.0.0.1:5000/api/verify-email`, {
+    const apiUrl = `${import.meta.env.VITE_APP_API_URL}/api/verify-email`;
+
+    fetch(apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token }),

@@ -134,7 +134,7 @@ const GroupForm = ({ onSave, onCancel }: GroupFormProps) => {
         createdAt: new Date().toISOString(),
       };
 
-      const apiUrl = `http://127.0.0.1:5000/api/groups`;
+      const apiUrl = `${import.meta.env.VITE_APP_API_URL}/api/groups`;
       console.log("Members count:", members.length);
       console.log("Group Data:", groupData);
 

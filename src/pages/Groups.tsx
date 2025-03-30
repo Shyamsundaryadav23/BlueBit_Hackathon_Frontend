@@ -20,6 +20,9 @@ const Groups = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Base API URL from environment variables
+  const baseApiUrl = import.meta.env.VITE_APP_API_URL;
+
   // Fetch groups from backend
   const fetchGroups = async () => {
     setIsLoading(true);
@@ -29,8 +32,8 @@ const Groups = () => {
         throw new Error('No token found. Please log in again.');
       }
       console.log('Token:', token);
-      
-      const response = await axios.get("http://127.0.0.1:5000/api/groups", {
+
+      const response = await axios.get(`${baseApiUrl}/api/groups`, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
@@ -64,7 +67,7 @@ const Groups = () => {
 
   const openForm = () => setIsFormOpen(true);
   const closeForm = () => setIsFormOpen(false);
-  
+
   // Called after successful group creation
   const handleCreateGroup = () => {
     console.log('Group created successfully, refetching groups');

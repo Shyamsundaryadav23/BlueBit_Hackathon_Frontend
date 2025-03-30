@@ -253,10 +253,6 @@ const ExpenseForm = ({
     }
 
     const currentUserEmail = localStorage.getItem("email");
-    const currentUserID =
-      members.find((member: Member) => member.email === currentUserEmail)?.userId ||
-      members.find((member: Member) => member.email === currentUserEmail)?.id ||
-      "";
 
     let splits;
     if (splitMethod === "equal") {

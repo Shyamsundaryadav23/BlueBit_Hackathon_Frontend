@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import {
   PlusCircle,
-  Filter,
   Mail,
   CreditCard,
   UserPlus,
@@ -35,9 +34,9 @@ import { ErrorBoundary } from "@/components/errorr/ErrorrBoundary";
 import { ChatRoom } from "@/components/chatroom/ChatRoom";
 import emailjs from "emailjs-com";
 
-interface MemberMap {
-  [key: string]: { name: string; email: string };
-}
+// interface MemberMap {
+//   [key: string]: { name: string; email: string };
+// }
 
 const Expenses: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
@@ -51,13 +50,13 @@ const Expenses: React.FC = () => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
+  const [selectedExpenseId, ] = useState<string | null>(null);
   const [isARScanOpen, setIsARScanOpen] = useState(false);
   const [settlementTransactions, setSettlementTransactions] = useState<Transaction[]>([]);
   const [isSettling, setIsSettling] = useState(false);
   const [currency] = useState({ symbol: "$" });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // const fileInputRef = useRef<HTMLInputElement>(null);
 
   const apiUrl = import.meta.env.VITE_APP_API_URL;
 
@@ -206,11 +205,11 @@ const Expenses: React.FC = () => {
     toast.success("Expense added successfully");
   };
 
-  // Payment dialog trigger
-  const handleProceedToPayment = (expenseId: string) => {
-    setSelectedExpenseId(expenseId);
-    setPaymentModalOpen(true);
-  };
+  // // Payment dialog trigger
+  // const handleProceedToPayment = (expenseId: string) => {
+  //   setSelectedExpenseId(expenseId);
+  //   setPaymentModalOpen(true);
+  // };
 
   // Send invite function
   const sendInvite = async () => {
@@ -265,57 +264,57 @@ const Expenses: React.FC = () => {
   const processingFee = 0.5;
   const totalPayment = paymentAmount + processingFee;
 
-  // Mobile ExpenseCard component (without AR Scan button)
-  const MobileExpenseCard = ({ expense }: { expense: Expense }) => {
-    return (
-      <div
-        className="bg-white p-4 rounded-lg shadow-sm mb-3 border border-gray-100 hover:shadow-md transition-shadow duration-200"
-        aria-label={`Expense ${expense.name}`}
-      >
-        <div className="flex justify-between items-center mb-2">
-          <div className="flex items-center">
-            <div className="p-2 bg-primary-50 rounded-md mr-3">
-              {expense.category === "food" ? (
-                <span className="text-xl">🍔</span>
-              ) : expense.category === "entertainment" ? (
-                <span className="text-xl">🎬</span>
-              ) : (
-                <span className="text-xl">📦</span>
-              )}
-            </div>
-            <div>
-              <h3 className="font-medium text-base">{expense.name}</h3>
-              <p className="text-xs text-gray-500">
-                {expense.date.toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="font-bold text-base">
-              {currency.symbol}{Number(expense.amount).toFixed(2)}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
-          <div className="flex items-center text-xs text-gray-600">
-            <span>Paid by</span>
-            <span className="ml-1 px-2 py-1 bg-gray-100 rounded-full">
-              {expense.paidBy}
-            </span>
-          </div>
-          <div className="flex gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs px-2 py-1 h-auto focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-            >
-              Details
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  // // Mobile ExpenseCard component (without AR Scan button)
+  // const MobileExpenseCard = ({ expense }: { expense: Expense }) => {
+  //   return (
+  //     <div
+  //       className="bg-white p-4 rounded-lg shadow-sm mb-3 border border-gray-100 hover:shadow-md transition-shadow duration-200"
+  //       aria-label={`Expense ${expense.name}`}
+  //     >
+  //       <div className="flex justify-between items-center mb-2">
+  //         <div className="flex items-center">
+  //           <div className="p-2 bg-primary-50 rounded-md mr-3">
+  //             {expense.category === "food" ? (
+  //               <span className="text-xl">🍔</span>
+  //             ) : expense.category === "entertainment" ? (
+  //               <span className="text-xl">🎬</span>
+  //             ) : (
+  //               <span className="text-xl">📦</span>
+  //             )}
+  //           </div>
+  //           <div>
+  //             <h3 className="font-medium text-base">{expense.name}</h3>
+  //             <p className="text-xs text-gray-500">
+  //               {expense.date.toLocaleDateString()}
+  //             </p>
+  //           </div>
+  //         </div>
+  //         <div className="text-right">
+  //           <p className="font-bold text-base">
+  //             {currency.symbol}{Number(expense.amount).toFixed(2)}
+  //           </p>
+  //         </div>
+  //       </div>
+  //       <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+  //         <div className="flex items-center text-xs text-gray-600">
+  //           <span>Paid by</span>
+  //           <span className="ml-1 px-2 py-1 bg-gray-100 rounded-full">
+  //             {expense.paidBy}
+  //           </span>
+  //         </div>
+  //         <div className="flex gap-1">
+  //           <Button
+  //             variant="ghost"
+  //             size="sm"
+  //             className="text-xs px-2 py-1 h-auto focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+  //           >
+  //             Details
+  //           </Button>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // };
 
   return (
     <AppLayout>

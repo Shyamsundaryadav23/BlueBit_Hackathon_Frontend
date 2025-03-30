@@ -11,7 +11,7 @@ interface ARScanDialogProps {
 
 const ARScanDialog: React.FC<ARScanDialogProps> = ({ isOpen, onClose }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [, setStream] = useState<MediaStream | null>(null);
 
   useEffect(() => {
     let activeStream: MediaStream | null = null;

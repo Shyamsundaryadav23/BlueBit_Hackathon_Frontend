@@ -71,7 +71,7 @@ const ChartRenderer = ({ activeChart, pieData, monthlyData, dailyData, loading }
                 dataKey="value"
                 label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(2)}%`}
               >
-                {pieData.map((entry, index) => (
+                {pieData.map((index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
@@ -114,7 +114,7 @@ const ChartRenderer = ({ activeChart, pieData, monthlyData, dailyData, loading }
 };
 
 const Insights = () => {
-  const [activeTab, setActiveTab] = useState("spending");
+  const [, setActiveTab] = useState("spending");
   const [activeChart, setActiveChart] = useState("pie");
   const [timeRange, setTimeRange] = useState("This Month");
   const [pieData, setPieData] = useState<any[]>([]);

@@ -8,7 +8,6 @@ import {
   Users,
   User,
   LogOut,
-  Bell,
   Moon,
   Sun,
 } from "lucide-react";
@@ -80,7 +79,7 @@ export const Header = () => {
   const closeMenu = () => setIsMenuOpen(false);
   const isActive = (path: string) => location.pathname === path;
 
-  // Navigation items (removed notification property)
+  // Navigation items
   const navItems = [
     {
       name: "Dashboard",
@@ -228,7 +227,6 @@ export const Header = () => {
                       alt={user.name}
                       referrerPolicy="no-referrer"
                       onError={(e) => {
-                        // Hide the broken image so the fallback appears
                         e.currentTarget.style.display = "none";
                       }}
                     />
@@ -297,62 +295,70 @@ export const Header = () => {
 
       {/* Mobile Navigation Drawer */}
       {isMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-50 backdrop-blur-sm bg-black/20">
-          <div className="absolute right-0 top-0 h-full w-3/4 max-w-xs p-4 shadow-lg animate-in slide-in-from-right bg-white">
-            <div className="flex items-center justify-between mb-6">
+        // Outer overlay with a solid white (or dark) background
+        <div
+          className="md:hidden fixed inset-0 z-50 bg-white dark:bg-gray-900"
+          onClick={closeMenu}
+        >
+          {/* Drawer container (stops propagation so clicks inside don't close) */}
+          <div
+            className="absolute right-0 top-0 h-full w-3/4 max-w-xs shadow-lg animate-in slide-in-from-right flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header Section */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
               <p className="font-semibold">Menu</p>
               <Button variant="ghost" size="icon" onClick={closeMenu}>
                 <X size={18} />
               </Button>
             </div>
-            <div className="flex flex-col space-y-1 mb-6">
-              <span className="text-sm font-medium">
-                {user?.name || "User"}
-              </span>
-              <span className="text-xs text-gray-500">
-                {user?.Email || "user@example.com"}
-              </span>
+            {/* User Info Section */}
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+              <div className="flex flex-col space-y-1">
+                <span className="text-sm font-medium text-gray-900">
+                  {user?.name || "User"}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {user?.Email || "user@example.com"}
+                </span>
+              </div>
             </div>
-            <nav className="flex flex-col space-y-1">
-              {navItems.map((item) => (
+            {/* Navigation Section */}
+            <div className="p-4 bg-white dark:bg-gray-900">
+              <nav className="flex flex-col">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={cn(
+                      "flex items-center py-3 text-sm font-medium transition-colors bg-white text-gray-900 hover:bg-gray-100 border-b border-gray-200",
+                      isActive(item.path) && "bg-white"
+                    )}
+                    onClick={closeMenu}
+                  >
+                    <span className="flex items-center">
+                      {item.icon}
+                      {item.name}
+                    </span>
+                  </Link>
+                ))}
                 <Link
-                  key={item.path}
-                  to={item.path}
-                  className={cn(
-                    "flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                    isActive(item.path)
-                      ? "bg-gray-200 text-gray-900"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-200"
-                  )}
+                  to="/profile"
+                  className="flex items-center py-3 text-sm font-medium bg-white text-gray-900 hover:bg-gray-100 border-b border-gray-200"
                   onClick={closeMenu}
                 >
-                  <span className="flex items-center">
-                    {item.icon}
-                    {item.name}
-                  </span>
+                  <User className="w-4 h-4 mr-2" />
+                  Profile
                 </Link>
-              ))}
-              <Link
-                to="/profile"
-                className={cn(
-                  "flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  "text-gray-600 hover:text-gray-900 hover:bg-gray-200"
-                )}
-                onClick={closeMenu}
-              >
-                <User className="w-4 h-4 mr-2" />
-                Profile
-              </Link>
-              <Button
-                variant="destructive"
-                size="sm"
-                className="w-full justify-start mt-4 text-red-600 hover:text-white hover:bg-red-500"
-                onClick={handleLogout}
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Log out
-              </Button>
-            </nav>
+                <button
+                  className="flex items-center py-3 text-sm font-medium bg-white text-gray-900 hover:bg-gray-100 border-b border-gray-200"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Log out
+                </button>
+              </nav>
+            </div>
           </div>
         </div>
       )}

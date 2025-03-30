@@ -11,14 +11,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-// interface DashboardViewProps {
-//   totalExpenses: number;
-//   expensesPaid: number;
-//   expensesOwed: number;
-//   groups: { id: string; name: string; memberCount: number }[];
-//   groupBalances: { groupId: string; balance: number }[];
-//   recentActivity: { id: string; description: string; date: string }[];
-// }
 interface DashboardViewProps {
   totalExpenses: number;
   expensesPaid: number;
@@ -28,7 +20,6 @@ interface DashboardViewProps {
   recentActivity: any[]; // You can replace 'any' with a more specific type
   userBalances: { userId: string; name: string; balance: number }[];  // ✅ Add this line
 }
-
 
 const DashboardView: React.FC<DashboardViewProps> = ({
   totalExpenses,
@@ -51,15 +42,20 @@ const DashboardView: React.FC<DashboardViewProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-6 grid-cols-1 md:grid-cols-3">
-          {[{ label: "Total Expenses", value: totalExpenses },
+          {[
+            { label: "Total Expenses", value: totalExpenses },
             { label: "Expenses Paid", value: expensesPaid },
-            { label: "Expenses Owed", value: expensesOwed }]
-            .map((item) => (
-              <div key={item.label}
-                   className="flex flex-col items-center justify-center p-8 rounded-xl bg-gradient-to-r from-blue-300 to-purple-300 text-white shadow-lg">
-                <div className="text-4xl font-extrabold">{item.value}</div>
-                <div className="text-lg">{item.label}</div>
+            { label: "Expenses Owed", value: expensesOwed },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="flex flex-col items-center justify-center p-8 rounded-xl bg-gradient-to-r from-blue-300 to-purple-300 text-white shadow-lg"
+            >
+              <div className="text-4xl font-extrabold">
+                {Number(item.value).toFixed(2)}
               </div>
+              <div className="text-lg">{item.label}</div>
+            </div>
           ))}
         </CardContent>
       </Card>
@@ -78,14 +74,20 @@ const DashboardView: React.FC<DashboardViewProps> = ({
               {expensesPaidPercentage.toFixed(1)}%
             </span>
           </div>
-          <Progress value={expensesPaidPercentage} className="h-3 rounded-lg bg-green-300" />
+          <Progress
+            value={expensesPaidPercentage}
+            className="h-3 rounded-lg bg-green-300"
+          />
           <div className="flex items-center justify-between">
             <span className="text-md font-medium text-gray-700">Owed</span>
             <span className="text-md font-bold text-red-600">
               {expensesOwedPercentage.toFixed(1)}%
             </span>
           </div>
-          <Progress value={expensesOwedPercentage} className="h-3 rounded-lg bg-red-300" />
+          <Progress
+            value={expensesOwedPercentage}
+            className="h-3 rounded-lg bg-red-300"
+          />
         </CardContent>
       </Card>
 
@@ -113,9 +115,16 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                 {groupBalances.map((groupBalance) => {
                   const group = groups.find((g) => g.id === groupBalance.groupId);
                   return (
-                    <TableRow key={groupBalance.groupId} className="hover:bg-gray-200 transition-all">
-                      <TableCell className="font-bold text-md text-gray-900">{group?.name}</TableCell>
-                      <TableCell className="text-md font-bold text-gray-700">{groupBalance.balance}</TableCell>
+                    <TableRow
+                      key={groupBalance.groupId}
+                      className="hover:bg-gray-200 transition-all"
+                    >
+                      <TableCell className="font-bold text-md text-gray-900">
+                        {group?.name}
+                      </TableCell>
+                      <TableCell className="text-md font-bold text-gray-700">
+                        {Number(groupBalance.balance).toFixed(2)}
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -145,9 +154,13 @@ const DashboardView: React.FC<DashboardViewProps> = ({
           <ScrollArea className="h-[220px] w-full rounded-lg border border-gray-300">
             <div className="divide-y divide-gray-300">
               {recentActivity.map((activity) => (
-                <div key={activity.id}
-                     className="py-4 px-5 hover:bg-gray-100 transition-all rounded-lg">
-                  <p className="text-md font-medium text-gray-900">{activity.description}</p>
+                <div
+                  key={activity.id}
+                  className="py-4 px-5 hover:bg-gray-100 transition-all rounded-lg"
+                >
+                  <p className="text-md font-medium text-gray-900">
+                    {activity.description}
+                  </p>
                   <p className="text-sm text-gray-600">{activity.date}</p>
                 </div>
               ))}

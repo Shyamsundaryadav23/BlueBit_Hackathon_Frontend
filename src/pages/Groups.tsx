@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect } from 'react';
 import { PlusCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -7,7 +5,12 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import GroupCard from '@/components/groups/GroupCard';
 import GroupForm from '@/components/groups/GroupForm';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription
+} from '@/components/ui/dialog';
 import Loader from '@/components/ui/Loader';
 import axios from 'axios';
 import { Group } from '@/utils/mockData'; // Your API shape may differ
@@ -110,6 +113,10 @@ const Groups = () => {
       )}
       
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogTitle>New Group</DialogTitle>
+        <DialogDescription>
+          Fill in the details to create a new group and start tracking your shared expenses.
+        </DialogDescription>
         <DialogContent className="sm:max-w-[600px] p-0">
           <GroupForm onSave={handleCreateGroup} onCancel={closeForm} />
         </DialogContent>

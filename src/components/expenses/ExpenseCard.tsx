@@ -18,7 +18,7 @@ import {
   HeartPulse,
   Camera,
 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, getInitials } from "@/lib/utils";
 import { Expense, Member } from "@/utils/mockData";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -29,7 +29,6 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import ARScanDialog from "../arscan/ARScanDialogue";
 
@@ -66,12 +65,9 @@ const getCategoryIcon = (category: string) => {
 const formatDate = (date: Date | string | number): string => {
   try {
     const dateObj = date instanceof Date ? date : new Date(date);
-    
-    // Check if date is valid
     if (isNaN(dateObj.getTime())) {
-      return 'Invalid date';
+      return "Invalid date";
     }
-    
     return new Intl.DateTimeFormat("en-US", {
       month: "short",
       day: "numeric",
@@ -90,10 +86,12 @@ const ExpenseCard = ({
   onPaymentClick,
 }: ExpenseCardProps) => {
   const [expanded, setExpanded] = useState(false);
-  const [arScanOpen, setArScanOpen] = useState(false); // For AR Scan dialog
+  const [isARScanOpen, setIsARScanOpen] = useState(false);
 
   const paidBy = members.find((member) => member.id === expense.paidBy);
-  const userSplit = expense.splits.find((split) => split.memberId === currentUserId);
+  const userSplit = expense.splits.find(
+    (split) => split.memberId === currentUserId
+  );
   const isUserPayer = expense.paidBy === currentUserId;
 
   const getUserStatus = () => {
@@ -111,17 +109,9 @@ const ExpenseCard = ({
 
   return (
     <>
-      {/* Main card container */}
       <div
-        className="
-          bg-white 
-          rounded-md 
-          shadow 
-          transition-shadow 
-          p-4 
-          mb-4 
-          hover:shadow-lg
-        "
+        className="bg-white rounded-md shadow transition-shadow duration-200 p-4 mb-4 hover:shadow-lg focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary"
+        tabIndex={0} // Makes card focusable for keyboard users
       >
         {/* Top Row */}
         <div className="flex justify-between items-start">
@@ -159,15 +149,15 @@ const ExpenseCard = ({
         </div>
 
         {/* Middle Row */}
-        <div className="mt-3 flex items-center text-sm text-muted-foreground">
+        <div className="mt-3 flex flex-wrap items-center text-sm text-muted-foreground gap-2">
           <div className="flex items-center">
             <DollarSign className="mr-1 h-3 w-3" />
-            <span>Paid by </span>
+            <span>Paid by&nbsp;</span>
             {paidBy && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <span className="ml-1 font-medium text-foreground">
+                    <span className="ml-1 font-medium text-foreground cursor-pointer underline">
                       {paidBy.id === currentUserId ? "You" : paidBy.name}
                     </span>
                   </TooltipTrigger>
@@ -179,18 +169,18 @@ const ExpenseCard = ({
             )}
           </div>
 
-          <span className="mx-2">•</span>
+          <span>•</span>
 
           <div className="flex items-center">
             <Tag className="mr-1 h-3 w-3" />
             <span className="capitalize">{expense.category}</span>
           </div>
 
-          <span className="mx-2">•</span>
+          <span>•</span>
 
           <button
             onClick={() => setExpanded(!expanded)}
-            className="flex items-center hover:text-foreground"
+            className="flex items-center text-sm hover:text-foreground focus:outline-none focus:underline"
           >
             <Info className="mr-1 h-3 w-3" />
             <span>Details</span>
@@ -201,125 +191,143 @@ const ExpenseCard = ({
             )}
           </button>
 
-          {/* AR Scan Button (optional position) */}
-          <span className="mx-2">•</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setArScanOpen(true)}
-            className="h-7 px-2 text-xs"
-          >
-            <Camera className="mr-1 h-3 w-3" />
-            AR Scan
-          </Button>
+          <span>•</span>
+          {/* AR Scan Button */}
+          <div className="flex-shrink-0 whitespace-nowrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsARScanOpen(true)}
+              className="text-xs px-2 py-1 h-auto flex items-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            >
+              <Camera className="mr-1 h-3 w-3" />
+              <span>AR Scan</span>
+            </Button>
+          </div>
         </div>
 
-        {/* Expanded Details */}
-        {expanded && (
-          <div className="mt-4 animate-slide-down">
-            <Separator className="my-3" />
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Split between</span>
-                <Badge variant="outline" className="capitalize">
-                  <Users className="mr-1 h-3 w-3" />
-                  <span>{expense.splits.length} people</span>
-                </Badge>
-              </div>
-
-              <div className="flex -space-x-2 overflow-hidden">
-                {members
-                  .filter((member) =>
-                    expense.splits.some((split) => split.memberId === member.id)
-                  )
-                  .map((member) => (
-                    <TooltipProvider key={member.id}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Avatar className="border-2 border-background">
-                            <AvatarImage src={member.avatar} />
-                            <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
-                          </Avatar>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{member.name}</p>
-                          <p className="text-xs text-muted-foreground">{member.email}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  ))}
-              </div>
-
-              <div className="mt-4 space-y-2">
-                <h4 className="text-sm font-medium">Split Details</h4>
-
-                <div className="space-y-1.5">
-                  {expense.splits.map((split) => {
-                    const member = members.find((m) => m.id === split.memberId);
-                    if (!member) return null;
-
-                    return (
-                      <div
-                        key={split.memberId}
-                        className="flex justify-between items-center text-sm py-1"
-                      >
-                        <div className="flex items-center">
-                          <Avatar className="h-6 w-6 mr-2">
-                            <AvatarImage src={member.avatar} />
-                            <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
-                          </Avatar>
-                          <span>
-                            {member.id === currentUserId ? "You" : member.name}
-                          </span>
-                        </div>
-                        <div className="flex items-center">
-                          <span
-                            className={split.paid ? "text-green-600" : "text-amber-600"}
-                          >
-                            {formatCurrency(split.amount, expense.currency)}
-                          </span>
-                          {!split.paid &&
-                            member.id === currentUserId &&
-                            onPaymentClick && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="ml-2 h-7 px-2 text-xs"
-                                onClick={() => onPaymentClick(expense.id)}
-                              >
-                                Pay Now
-                              </Button>
-                            )}
-                          {(split.paid ||
-                            !onPaymentClick ||
-                            member.id !== currentUserId) && (
-                            <Badge
-                              variant={split.paid ? "secondary" : "outline"}
-                              className="ml-2 text-xs"
-                            >
-                              {split.paid ? "Paid" : "Pending"}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+        {/* Expanded Details with smooth transition */}
+        <div
+          className={`mt-4 overflow-hidden transition-all duration-300 ${
+            expanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          }`}
+          aria-hidden={!expanded}
+        >
+          {expanded && (
+            <>
+              <Separator className="my-3" />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Split between
+                  </span>
+                  <Badge variant="outline" className="capitalize">
+                    <Users className="mr-1 h-3 w-3" />
+                    <span>{expense.splits.length} people</span>
+                  </Badge>
                 </div>
 
-                {expense.description && (
-                  <div className="mt-3 text-sm">
-                    <h4 className="font-medium">Description</h4>
-                    <p className="text-muted-foreground mt-1">{expense.description}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+                <div className="flex -space-x-2 overflow-hidden">
+                  {members
+                    .filter((member) =>
+                      expense.splits.some(
+                        (split) => split.memberId === member.id
+                      )
+                    )
+                    .map((member) => (
+                      <TooltipProvider key={member.id}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Avatar className="border-2 border-background">
+                              <AvatarImage src={member.avatar} alt={member.name} />
+                              <AvatarFallback>
+                                {getInitials(member.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{member.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {member.email}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ))}
+                </div>
 
-      {/* AR Scan Dialog */}
-      <ARScanDialog isOpen={arScanOpen} onClose={() => setArScanOpen(false)} />
+                <div className="mt-4 space-y-2">
+                  <h4 className="text-sm font-medium">Split Details</h4>
+                  <div className="space-y-1.5">
+                    {expense.splits.map((split) => {
+                      const member = members.find(
+                        (m) => m.id === split.memberId
+                      );
+                      if (!member) return null;
+                      return (
+                        <div
+                          key={split.memberId}
+                          className="flex justify-between items-center text-sm py-1"
+                        >
+                          <div className="flex items-center">
+                            <Avatar className="h-6 w-6 mr-2">
+                              <AvatarImage src={member.avatar} alt={member.name} />
+                              <AvatarFallback>
+                                {getInitials(member.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>
+                              {member.id === currentUserId ? "You" : member.name}
+                            </span>
+                          </div>
+                          <div className="flex items-center">
+                            <span
+                              className={split.paid ? "text-green-600" : "text-amber-600"}
+                            >
+                              {formatCurrency(split.amount, expense.currency)}
+                            </span>
+                            {!split.paid &&
+                              member.id === currentUserId &&
+                              onPaymentClick && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="ml-2 h-7 px-2 text-xs"
+                                  onClick={() => onPaymentClick(expense.id)}
+                                >
+                                  Pay Now
+                                </Button>
+                              )}
+                            {(split.paid ||
+                              !onPaymentClick ||
+                              member.id !== currentUserId) && (
+                              <Badge
+                                variant={split.paid ? "secondary" : "outline"}
+                                className="ml-2 text-xs"
+                              >
+                                {split.paid ? "Paid" : "Pending"}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {expense.description && (
+                    <div className="mt-3 text-sm">
+                      <h4 className="font-medium">Description</h4>
+                      <p className="text-muted-foreground mt-1">
+                        {expense.description}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+      <ARScanDialog isOpen={isARScanOpen} onClose={() => setIsARScanOpen(false)} />
     </>
   );
 };

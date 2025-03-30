@@ -8,6 +8,8 @@ import {
   UserPlus,
   Smartphone,
   Camera,
+  Search,
+  Menu,
 } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -20,14 +22,6 @@ import {
 } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import Loader from "@/components/ui/Loader";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import emailjs from "emailjs-com";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
@@ -36,10 +30,10 @@ import ExpenseCard from "@/components/expenses/ExpenseCard";
 import axios from "axios";
 import ARScanDialog from "@/components/arscan/ARScanDialogue";
 import { SettleDebtsCard } from "@/components/settledebt/SettleDebtsCard";
-
-import { Expense, Group, Member, Transaction } from "@/utils/mockData";
+import { Expense, Group, Transaction } from "@/utils/mockData";
 import { ErrorBoundary } from "@/components/errorr/ErrorrBoundary";
 import { ChatRoom } from "@/components/chatroom/ChatRoom";
+import emailjs from "emailjs-com";
 
 interface MemberMap {
   [key: string]: { name: string; email: string };
@@ -47,28 +41,22 @@ interface MemberMap {
 
 const Expenses: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
-  console.log("Expenses Page - groupId:", groupId);
-
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [filteredExpenses, setFilteredExpenses] = useState<Expense[]>([]);
   const [groupDetails, setGroupDetails] = useState<Group | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [groupFilter, setGroupFilter] = useState<string>(groupId ?? "all");
   const [selectedTab, setSelectedTab] = useState("expenses");
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(
-    null
-  );
+  const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
   const [isARScanOpen, setIsARScanOpen] = useState(false);
-  const [settlementTransactions, setSettlementTransactions] = useState<
-    Transaction[]
-  >([]);
+  const [settlementTransactions, setSettlementTransactions] = useState<Transaction[]>([]);
   const [isSettling, setIsSettling] = useState(false);
   const [currency] = useState({ symbol: "$" });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const apiUrl = import.meta.env.VITE_APP_API_URL;
@@ -104,12 +92,9 @@ const Expenses: React.FC = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token || !groupId) throw new Error("No token or group ID found");
-      const response = await axios.get(
-        `${apiUrl}/api/expenses/group/${groupId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await axios.get(`${apiUrl}/api/expenses/group/${groupId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const groupExpenses: Expense[] = response.data.map((expense: any) => ({
         id: expense.ExpenseID,
         ExpenseID: expense.ExpenseID,
@@ -141,12 +126,9 @@ const Expenses: React.FC = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token || !groupId) return;
-      const response = await fetch(
-        `${apiUrl}/api/transactions/group/${groupId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await fetch(`${apiUrl}/api/transactions/group/${groupId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!response.ok) throw new Error("Failed to fetch transactions");
       const data = await response.json();
       setSettlementTransactions(data.transactions || []);
@@ -180,12 +162,9 @@ const Expenses: React.FC = () => {
     }
   };
 
-  // Filtering expenses based on search and group filter
-  const applyFilters = (search: string, group: string) => {
+  // Filtering expenses based on search term
+  const applyFilters = (search: string) => {
     let filtered = [...expenses];
-    if (group !== "all") {
-      filtered = filtered.filter((expense) => expense.groupId === group);
-    }
     if (search) {
       const searchLower = search.toLowerCase();
       filtered = filtered.filter(
@@ -201,19 +180,11 @@ const Expenses: React.FC = () => {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
-    applyFilters(value, groupFilter);
-  };
-
-  const handleFilterChange = (group: string) => {
-    setGroupFilter(group);
-    applyFilters(searchTerm, group);
+    applyFilters(value);
   };
 
   const openForm = () => setIsFormOpen(true);
   const closeForm = () => setIsFormOpen(false);
-
-  // AR Scan functionality
-  const handleARScan = () => setIsARScanOpen(true);
 
   // Payment processing (stub function)
   const processPayment = () => {
@@ -274,14 +245,13 @@ const Expenses: React.FC = () => {
 
   useEffect(() => {
     if (groupId) {
-      setGroupFilter(groupId);
       fetchGroupDetails();
       fetchExpenses();
       fetchSettlementTransactions();
     }
   }, [groupId]);
 
-  // Compute memberMap to pass to SettleDebtsCard (mapping email -> { name, email })
+  // Compute memberMap to pass to SettleDebtsCard
   const memberMap =
     groupDetails?.members.reduce((map: any, member: any) => {
       if (member.email) {
@@ -290,91 +260,219 @@ const Expenses: React.FC = () => {
       return map;
     }, {}) || {};
 
+  // Define payment amounts (example values)
+  const paymentAmount = 24.99;
+  const processingFee = 0.5;
+  const totalPayment = paymentAmount + processingFee;
+
+  // Mobile ExpenseCard component (without AR Scan button)
+  const MobileExpenseCard = ({ expense }: { expense: Expense }) => {
+    return (
+      <div
+        className="bg-white p-4 rounded-lg shadow-sm mb-3 border border-gray-100 hover:shadow-md transition-shadow duration-200"
+        aria-label={`Expense ${expense.name}`}
+      >
+        <div className="flex justify-between items-center mb-2">
+          <div className="flex items-center">
+            <div className="p-2 bg-primary-50 rounded-md mr-3">
+              {expense.category === "food" ? (
+                <span className="text-xl">🍔</span>
+              ) : expense.category === "entertainment" ? (
+                <span className="text-xl">🎬</span>
+              ) : (
+                <span className="text-xl">📦</span>
+              )}
+            </div>
+            <div>
+              <h3 className="font-medium text-base">{expense.name}</h3>
+              <p className="text-xs text-gray-500">
+                {expense.date.toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="font-bold text-base">
+              {currency.symbol}{Number(expense.amount).toFixed(2)}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+          <div className="flex items-center text-xs text-gray-600">
+            <span>Paid by</span>
+            <span className="ml-1 px-2 py-1 bg-gray-100 rounded-full">
+              {expense.paidBy}
+            </span>
+          </div>
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-xs px-2 py-1 h-auto focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            >
+              Details
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <AppLayout>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Expenses for: {groupDetails ? groupDetails.name : "Loading..."}
-        </h1>
-        <div className="flex gap-2">
+      {/* Responsive header */}
+      <div className="sticky top-0 z-10 bg-gray-50 p-4 mb-4 rounded-b-lg shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-xl font-semibold truncate pr-2">
+            {groupDetails ? groupDetails.name : "Loading..."}
+          </h1>
+          {/* Desktop action buttons */}
+          <div className="hidden md:flex md:space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setInviteModalOpen(true)}
+              className="flex items-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200 hover:bg-gray-100"
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Invite Member
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={openForm}
+              className="flex items-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200 hover:bg-gray-100"
+            >
+              <PlusCircle className="mr-2 h-4 w-4" />
+              New Expense
+            </Button>
+            {/* Global AR Scan button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsARScanOpen(true)}
+              className="flex items-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200 hover:bg-gray-100"
+            >
+              <Camera className="mr-2 h-4 w-4" />
+              AR Scan
+            </Button>
+          </div>
+          {/* Mobile menu button */}
           <Button
-            variant="outline"
-            onClick={() => setInviteModalOpen(true)}
-            className="rounded-md"
+            variant="ghost"
+            size="sm"
+            className="p-1 md:hidden transition-colors duration-200 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Mobile menu"
           >
-            <UserPlus className="mr-2 h-4 w-4" />
-            Invite Member
+            <Menu className="h-5 w-5" />
           </Button>
-          <Button onClick={openForm} className="rounded-md">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            New Expense
-          </Button>
-          <Button onClick={handleARScan} className="rounded-md">
-            <Camera className="mr-2 h-4 w-4" />
-            AR Scan
-          </Button>
+        </div>
+        {/* Mobile dropdown menu */}
+        {mobileMenuOpen && (
+          <div className="bg-white absolute right-4 top-14 shadow-lg rounded-lg z-20 w-48 border border-gray-200 overflow-hidden transition-all duration-300 ease-in-out">
+            <div className="p-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start mb-1 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200 hover:bg-gray-100"
+                onClick={() => {
+                  setInviteModalOpen(true);
+                  setMobileMenuOpen(false);
+                }}
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+                Invite Member
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200 hover:bg-gray-100"
+                onClick={() => {
+                  openForm();
+                  setMobileMenuOpen(false);
+                }}
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                New Expense
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200 hover:bg-gray-100"
+                onClick={() => {
+                  setIsARScanOpen(true);
+                  setMobileMenuOpen(false);
+                }}
+              >
+                <Camera className="mr-2 h-4 w-4" />
+                AR Scan
+              </Button>
+            </div>
+          </div>
+        )}
+        {/* Tab selector */}
+        <div className="grid grid-cols-3 gap-1 bg-gray-200 p-1 rounded-lg">
+          {["expenses", "payments", "chat"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setSelectedTab(tab)}
+              className={`py-2 px-3 rounded-md text-sm font-medium transition-colors duration-200 ${
+                selectedTab === tab
+                  ? "bg-white shadow-sm text-primary"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+              aria-pressed={selectedTab === tab}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Tabs: Expenses, Payments, and Chat */}
-      <Tabs
-        value={selectedTab}
-        onValueChange={(val) => setSelectedTab(val)}
-        className="w-full mb-6"
-      >
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="expenses">Expenses</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="chat">Chat</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="expenses" className="mt-4">
-          <div className="mb-6 flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
+      {selectedTab === "expenses" && (
+        <div className="px-4">
+          {/* Search section */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
+            <div className="relative flex-grow md:max-w-md">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
               <Input
                 placeholder="Search expenses..."
                 value={searchTerm}
                 onChange={handleSearchChange}
-                className="w-full"
+                className="pl-10 w-full bg-white"
+                aria-label="Search expenses"
               />
-            </div>
-            <div className="w-full sm:w-48">
-              <Select value={groupFilter} onValueChange={handleFilterChange}>
-                <SelectTrigger>
-                  <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder="Filter by group" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Groups</SelectItem>
-                  <SelectItem value={groupId ?? "all"}>
-                    Current Group
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
-          <Separator className="mb-6" />
+
+          {/* Floating action button for mobile */}
+          <div className="fixed bottom-6 right-6 z-10 md:hidden">
+            <Button
+              onClick={openForm}
+              size="lg"
+              className="h-14 w-14 rounded-full shadow-lg flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-transform duration-200 hover:scale-105"
+              aria-label="Add expense"
+            >
+              <PlusCircle className="h-6 w-6" />
+            </Button>
+          </div>
+
           {isLoading ? (
-            <div className="h-40 flex-center">
+            <div className="h-40 flex items-center justify-center">
               <Loader size="lg" />
             </div>
           ) : filteredExpenses.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-2">
               {filteredExpenses.map((expense, index) => (
-                <ExpenseCard
-                  key={`${expense.id}-${index}`}
-                  expense={expense}
-                  members={[]} // Adjust if member data is available
-                  onPaymentClick={() => handleProceedToPayment(expense.id)}
-                />
+                <ExpenseCard key={`${expense.id}-${index}`} expense={expense} members={groupDetails?.members || []} />
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 border border-dashed rounded-lg">
+            <div className="text-center py-8 border border-dashed rounded-lg">
               <h3 className="font-medium text-lg mb-2">No Expenses Found</h3>
-              <p className="text-muted-foreground mb-4">
-                {searchTerm || groupFilter !== "all"
-                  ? "Try changing your filters"
+              <p className="text-gray-500 mb-4">
+                {searchTerm
+                  ? "Try changing your search criteria"
                   : "Add your first expense to get started"}
               </p>
               <Button onClick={openForm} variant="outline">
@@ -383,9 +481,11 @@ const Expenses: React.FC = () => {
               </Button>
             </div>
           )}
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="payments" className="mt-4 space-y-4">
+      {selectedTab === "payments" && (
+        <div className="px-4">
           <SettleDebtsCard
             transactions={settlementTransactions}
             onSettle={handleSettleDebts}
@@ -393,9 +493,11 @@ const Expenses: React.FC = () => {
             currency={currency}
             memberMap={memberMap}
           />
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="chat" className="mt-4 h-[400px]">
+      {selectedTab === "chat" && (
+        <div className="px-4 h-[calc(100vh-200px)]">
           {groupId ? (
             <ErrorBoundary>
               <ChatRoom groupId={groupId} />
@@ -403,12 +505,12 @@ const Expenses: React.FC = () => {
           ) : (
             <div className="text-center">Loading chat...</div>
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
 
       {/* Expense Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[600px] p-0 bg-white dark:bg-gray-900 shadow-lg rounded-lg">
+        <DialogContent className="sm:max-w-[600px] p-0 bg-white dark:bg-gray-900 shadow-lg rounded-lg mx-4 max-h-[90vh] overflow-auto">
           <VisuallyHidden asChild>
             <DialogTitle>Add New Expense</DialogTitle>
           </VisuallyHidden>
@@ -417,7 +519,8 @@ const Expenses: React.FC = () => {
               Fill out the form to add a new expense.
             </DialogDescription>
           </VisuallyHidden>
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
+            <h2 className="text-lg font-bold mb-4">Add New Expense</h2>
             {groupDetails ? (
               <ExpenseForm
                 group={groupDetails}
@@ -435,7 +538,7 @@ const Expenses: React.FC = () => {
 
       {/* Payment Dialog */}
       <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] mx-4 p-4">
           <VisuallyHidden asChild>
             <DialogTitle>Complete Payment</DialogTitle>
           </VisuallyHidden>
@@ -444,26 +547,34 @@ const Expenses: React.FC = () => {
               Choose your preferred payment method.
             </DialogDescription>
           </VisuallyHidden>
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div className="text-center">
-              <h2 className="text-2xl font-bold mb-2">Complete Payment</h2>
-              <p className="text-muted-foreground">
+              <h2 className="text-xl font-bold mb-2">Complete Payment</h2>
+              <p className="text-gray-500 text-sm">
                 Choose your preferred payment method.
               </p>
             </div>
-            <div className="p-4 bg-muted rounded-lg">
+            <div className="p-4 bg-gray-50 rounded-lg">
               <div className="flex justify-between mb-2">
-                <span className="text-muted-foreground">Amount:</span>
-                <span className="font-medium">$24.99</span>
+                <span className="text-gray-500">Amount:</span>
+                <span className="font-medium">
+                  ${paymentAmount.toFixed(2)}
+                </span>
               </div>
               <div className="flex justify-between mb-2">
-                <span className="text-muted-foreground">Processing Fee:</span>
-                <span className="font-medium">$0.50</span>
+                <span className="text-gray-500">
+                  Processing Fee:
+                </span>
+                <span className="font-medium">
+                  ${processingFee.toFixed(2)}
+                </span>
               </div>
               <Separator className="my-2" />
               <div className="flex justify-between">
                 <span className="font-medium">Total:</span>
-                <span className="font-bold">$25.49</span>
+                <span className="font-bold">
+                  ${totalPayment.toFixed(2)}
+                </span>
               </div>
             </div>
             <Tabs defaultValue="upi" className="w-full">
@@ -473,9 +584,10 @@ const Expenses: React.FC = () => {
               </TabsList>
               <TabsContent value="upi" className="mt-4 space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">UPI ID</label>
+                  <label className="text-sm font-medium" htmlFor="upi-id">UPI ID</label>
                   <div className="flex">
                     <Input
+                      id="upi-id"
                       placeholder="yourname@upi"
                       className="rounded-r-none"
                     />
@@ -485,7 +597,7 @@ const Expenses: React.FC = () => {
                 <div className="flex items-center justify-center p-6 border-2 border-dashed rounded-lg">
                   <div className="text-center">
                     <Smartphone className="h-10 w-10 mx-auto mb-2 text-primary" />
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-gray-500">
                       Scan QR code with your UPI app
                     </p>
                   </div>
@@ -510,17 +622,17 @@ const Expenses: React.FC = () => {
               </TabsContent>
               <TabsContent value="card" className="mt-4 space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Card Number</label>
-                  <Input placeholder="1234 5678 9012 3456" />
+                  <label className="text-sm font-medium" htmlFor="card-number">Card Number</label>
+                  <Input id="card-number" placeholder="1234 5678 9012 3456" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Expiry Date</label>
-                    <Input placeholder="MM/YY" />
+                    <label className="text-sm font-medium" htmlFor="expiry-date">Expiry Date</label>
+                    <Input id="expiry-date" placeholder="MM/YY" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">CVC</label>
-                    <Input placeholder="123" />
+                    <label className="text-sm font-medium" htmlFor="cvc">CVC</label>
+                    <Input id="cvc" placeholder="123" />
                   </div>
                 </div>
                 <Button
@@ -548,7 +660,7 @@ const Expenses: React.FC = () => {
 
       {/* Invite Dialog */}
       <Dialog open={inviteModalOpen} onOpenChange={setInviteModalOpen}>
-        <DialogContent className="sm:max-w-[500px] bg-white shadow-lg border border-gray-200">
+        <DialogContent className="sm:max-w-[500px] bg-white shadow-lg border border-gray-200 mx-4 p-4">
           <VisuallyHidden asChild>
             <DialogTitle>Invite Member</DialogTitle>
           </VisuallyHidden>
@@ -557,17 +669,18 @@ const Expenses: React.FC = () => {
               Send an invitation to join your expense group.
             </DialogDescription>
           </VisuallyHidden>
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div className="text-center">
-              <h2 className="text-2xl font-bold mb-2">Invite Member</h2>
-              <p className="text-muted-foreground">
+              <h2 className="text-xl font-bold mb-2">Invite Member</h2>
+              <p className="text-gray-500 text-sm">
                 Send an invitation to join your expense group.
               </p>
             </div>
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Email Address</label>
+                <label className="text-sm font-medium" htmlFor="invite-email">Email Address</label>
                 <Input
+                  id="invite-email"
                   placeholder="friend@example.com"
                   type="email"
                   value={inviteEmail}
@@ -575,23 +688,10 @@ const Expenses: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Group</label>
-                <Select defaultValue={groupId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select group" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={groupId ?? "all"}>
-                      Current Group
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
+                <label className="text-sm font-medium" htmlFor="invite-message">
                   Message (Optional)
                 </label>
-                <Input placeholder="Join our expense group for the trip!" />
+                <Input id="invite-message" placeholder="Join our expense group for the trip!" />
               </div>
             </div>
             <Button

@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -23,19 +23,20 @@ const GroupCard = ({ group }: GroupCardProps) => {
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    console.log("Group ID:", group.id); // Print group id in console
+    console.log("Group ID:", group.id);
     navigate(`/groups/${group.id}`);
   };
 
   return (
-    <Link to="#" onClick={handleClick}>
+    <div onClick={handleClick} className="cursor-pointer">
       <Card className="h-full overflow-hidden transition-all hover:scale-[1.01] hover:shadow-elevate border-none shadow-subtle">
         <CardHeader className="p-4 pb-2">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <Badge variant="secondary" className="text-xs">
                 <Users className="mr-1 h-3 w-3" />
-                {group.members.length} {group.members.length === 1 ? "member" : "members"}
+                {group.members.length}{" "}
+                {group.members.length === 1 ? "member" : "members"}
               </Badge>
               <h3 className="font-semibold text-lg">{group.name}</h3>
             </div>
@@ -49,15 +50,17 @@ const GroupCard = ({ group }: GroupCardProps) => {
           )}
           <div className="flex items-center text-xs text-muted-foreground">
             <CalendarDays className="h-3 w-3 mr-1" />
-            <span>Created {formatDate(group.createdAt)}</span>
+            <span>Created {formatDate(new Date(group.createdAt))}</span>
           </div>
         </CardContent>
         <CardFooter className="p-4 pt-2 flex justify-between items-center">
           <div className="flex -space-x-2">
-            {group.members.slice(0, 4).map((member) => (
-              <Avatar key={member.id} className="border-2 border-background h-8 w-8">
+            {group.members.slice(0, 4).map((member, index) => (
+              <Avatar key={member.id || index} className="border-2 border-background h-8 w-8">
                 <AvatarImage src={member.avatar} />
-                <AvatarFallback>{getInitials(member.name || "Unknown")}</AvatarFallback>
+                <AvatarFallback>
+                  {getInitials(member.name || "Unknown")}
+                </AvatarFallback>
               </Avatar>
             ))}
             {group.members.length > 4 && (
@@ -71,7 +74,7 @@ const GroupCard = ({ group }: GroupCardProps) => {
           </Badge>
         </CardFooter>
       </Card>
-    </Link>
+    </div>
   );
 };
 

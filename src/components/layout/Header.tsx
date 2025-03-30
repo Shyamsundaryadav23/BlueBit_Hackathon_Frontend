@@ -82,9 +82,21 @@ export const Header = () => {
 
   // Navigation items (removed notification property)
   const navItems = [
-    { name: "Dashboard", path: "/dashboard", icon: <Home className="w-4 h-4 mr-2" /> },
-    { name: "Groups", path: "/groups", icon: <Users className="w-4 h-4 mr-2" /> },
-    { name: "Insights", path: "/insights", icon: <PieChart className="w-4 h-4 mr-2" /> },
+    {
+      name: "Dashboard",
+      path: "/dashboard",
+      icon: <Home className="w-4 h-4 mr-2" />,
+    },
+    {
+      name: "Groups",
+      path: "/groups",
+      icon: <Users className="w-4 h-4 mr-2" />,
+    },
+    {
+      name: "Insights",
+      path: "/insights",
+      icon: <PieChart className="w-4 h-4 mr-2" />,
+    },
   ];
 
   // Logout handler
@@ -154,7 +166,9 @@ export const Header = () => {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link
           to="/dashboard"
-          className={cn("flex items-center gap-2 transition-transform hover:scale-105")}
+          className={cn(
+            "flex items-center gap-2 transition-transform hover:scale-105"
+          )}
           onClick={closeMenu}
         >
           <img
@@ -209,9 +223,19 @@ export const Header = () => {
               >
                 <Avatar className="h-10 w-10 ring-2 ring-offset-2 ring-primary">
                   {user?.picture ? (
-                    <AvatarImage src={user.picture} alt={user.name} />
+                    <AvatarImage
+                      src={user.picture}
+                      alt={user.name}
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        // Hide the broken image so the fallback appears
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
                   ) : (
-                    <AvatarFallback>{user ? getInitials(user.name) : "?"}</AvatarFallback>
+                    <AvatarFallback>
+                      {user ? getInitials(user.name) : "?"}
+                    </AvatarFallback>
                   )}
                 </Avatar>
               </Button>

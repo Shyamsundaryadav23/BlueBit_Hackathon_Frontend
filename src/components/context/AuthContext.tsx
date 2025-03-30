@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = () => {
     dispatch({ type: 'SET_LOADING', payload: true });
-    console.log("Redirecting to backend login endpoint..."); // Debug log
+    console.log("Redirecting to backend login endpoint...");
     // Redirect to your backend login endpoint.
     window.location.href = 'http://localhost:5000/api/login';
   };
@@ -68,6 +68,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const res = await api.get<User>('/api/user');
+      // Log complete user data for debugging
+      console.log("User data from API:", res.data);
+      
+      // Check if the user object has a valid profile picture URL.
+      if (!res.data.picture) {
+        console.warn("User object does not have a 'picture' property. Check API response or property naming.");
+      } else {
+        console.log("User picture URL:", res.data.picture);
+      }
+      
       dispatch({
         type: 'USER_LOADED',
         payload: res.data,

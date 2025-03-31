@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useMemo } from 'react';
 import { authReducer } from './authReducer';
 import api from '@/services/api';
 import { AuthState, User } from '@/types/auth.types';
@@ -8,90 +8,87 @@ interface AuthContextProps {
   login: () => void;
   logout: () => void;
   loadUser: () => Promise<void>;
+  setToken: (token: string) => void;
   clearError: () => void;
 }
 
-const initialState: AuthState = {
-  isAuthenticated: false,
-  user: null,
-  token: localStorage.getItem('token'),
-  loading: true,
-  error: null,
-};
-
-const AuthContext = createContext<AuthContextProps>({
-  state: initialState,
-  login: () => {},
-  logout: () => {},
-  loadUser: async () => {},
-  clearError: () => {},
-});
-
-export const useAuth = () => useContext(AuthContext);
+const AuthContext = createContext<AuthContextProps>({} as AuthContextProps);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, dispatch] = useReducer(authReducer, initialState);
+  const [state, dispatch] = useReducer(authReducer, {
+    isAuthenticated: false,
+    user: null,
+    token: localStorage.getItem('token'),
+    loading: true,
+    error: null,
+  });
 
-  useEffect(() => {
-    if (state.token) {
-      api.setAuthToken(state.token);
-    } else {
-      api.removeAuthToken();
+  // Memoized loadUser function
+  const loadUser = useCallback(async () => {
+    try {
+      const res = await api.get<User>('/api/user');
+      dispatch({ type: 'USER_LOADED', payload: res.data });
+    } catch (err) {
+      logout();
+      throw err;
     }
-  }, [state.token]);
+  }, []); // No dependencies, assuming api and dispatch are stable
 
+  // Memoize logout as well
+  const logout = useCallback(() => {
+    localStorage.removeItem('token');
+    dispatch({ type: 'LOGOUT' });
+    api.removeAuthToken();
+  }, []);
+
+  // Memoize setToken
+  const setToken = useCallback((token: string) => {
+    localStorage.setItem('token', token);
+    dispatch({ type: 'SET_TOKEN', payload: token });
+  }, []);
+
+  // Memoize login
+  const login = useCallback(() => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    // Redirect to backend login endpoint.
+    window.location.href = `${import.meta.env.VITE_APP_API_URL}/api/login`;
+  }, []);
+
+  // Memoize clearError
+  const clearError = useCallback(() => dispatch({ type: 'CLEAR_ERROR' }), []);
+
+  // Run initializeAuth only when token changes and user is not loaded yet
   useEffect(() => {
     const initializeAuth = async () => {
-      try {
-        if (localStorage.getItem('token')) {
+      if (state.token && !state.user) {
+        try {
           await loadUser();
+        } catch (err) {
+          // error already handled in loadUser
+        } finally {
+          dispatch({ type: 'SET_LOADING', payload: false });
         }
-      } catch (err) {
-        dispatch({ type: 'AUTH_ERROR' });
-      } finally {
+      } else {
         dispatch({ type: 'SET_LOADING', payload: false });
       }
     };
-
     initializeAuth();
-  }, []);
+  }, [state.token, state.user, loadUser]);
 
-  const login = () => {
-    dispatch({ type: 'SET_LOADING', payload: true });
-    window.location.href = `${import.meta.env.VITE_APP_API_URL}/api/login`;
-  };
-
-  const loadUser = async (): Promise<void> => {
-    dispatch({ type: 'SET_LOADING', payload: true });
-    try {
-      const res = await api.get<User>('/api/user');
-      dispatch({
-        type: 'USER_LOADED',
-        payload: res.data,
-      });
-    } catch (err: any) {
-      dispatch({
-        type: 'AUTH_ERROR',
-        payload: err.response?.data?.error || 'Failed to load user',
-      });
-      throw err;
-    }
-  };
-
-  const logout = () => {
-    dispatch({ type: 'SET_LOADING', payload: true });
-    api.post('/api/logout')
-      .finally(() => {
-        localStorage.removeItem('token');
-        dispatch({ type: 'LOGOUT' });
-      });
-  };
-
-  const clearError = () => dispatch({ type: 'CLEAR_ERROR' });
-
-  return (
-    <AuthContext.Provider value={{ state, login, logout, loadUser, clearError }}>
-      {children}
-    </AuthContext.Provider>
+  // Memoize the value provided by the context
+  const value = useMemo(
+    () => ({
+      state,
+      login,
+      logout,
+      loadUser,
+      setToken,
+      clearError,
+    }),
+    [state, login, logout, loadUser, setToken, clearError]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
+export const useAuth = () => useContext(AuthContext);

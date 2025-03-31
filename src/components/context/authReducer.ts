@@ -2,7 +2,7 @@ import { AuthState, User } from "@/types/auth.types";
 
 type AuthAction =
   | { type: 'USER_LOADED'; payload: User }
-  | { type: 'AUTH_SUCCESS'; payload: { token: string; user: User } }
+  | { type: 'SET_TOKEN'; payload: string }
   | { type: 'AUTH_ERROR' | 'LOGOUT'; payload?: string }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'CLEAR_ERROR' };
@@ -17,32 +17,27 @@ export const authReducer = (state: AuthState, action: AuthAction): AuthState => 
         loading: false,
         error: null,
       };
-    case 'AUTH_SUCCESS':
+    case 'SET_TOKEN':
       return {
         ...state,
+        token: action.payload,
         isAuthenticated: true,
-        token: action.payload.token,
-        user: action.payload.user,
+        loading: false,
+        error: null,
+      };
+    case 'LOGOUT':
+      return {
+        token: null,
+        user: null,
+        isAuthenticated: false,
         loading: false,
         error: null,
       };
     case 'AUTH_ERROR':
       return {
         ...state,
-        token: null,
-        isAuthenticated: false,
-        user: null,
         loading: false,
         error: action.payload || 'Authentication failed',
-      };
-    case 'LOGOUT':
-      return {
-        ...state,
-        token: null,
-        isAuthenticated: false,
-        user: null,
-        loading: false,
-        error: null,
       };
     case 'SET_LOADING':
       return { ...state, loading: action.payload };

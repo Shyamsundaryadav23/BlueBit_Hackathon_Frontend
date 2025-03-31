@@ -6,7 +6,7 @@ interface CustomAxiosInstance extends AxiosInstance {
 }
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_APP_API_URL || 'http://localhost:5000',
+  baseURL: import.meta.env.VITE_APP_API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -15,27 +15,26 @@ const api = axios.create({
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem('token');
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (token) {
+    config.headers!.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
 api.setAuthToken = (token: string) => {
   localStorage.setItem('token', token);
-  api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 };
 
 api.removeAuthToken = () => {
   localStorage.removeItem('token');
-  delete api.defaults.headers.common['Authorization'];
+  delete api.defaults.headers.common.Authorization;
 };
 
 api.interceptors.response.use(
   response => response,
   error => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
+      api.removeAuthToken();
       window.location.href = '/login';
     }
     return Promise.reject(error);

@@ -1,66 +1,47 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import api from '../../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { loadUser } = useAuth();
-  const [error, setError] = useState<string | null>(null);
-  const processedRef = useRef(false);
+  const { hash } = useLocation();
+  const { setToken, loadUser } = useAuth();
 
   useEffect(() => {
-    if (processedRef.current) return;
-    processedRef.current = true;
-
-    const handleCallback = async () => {
+    const handleAuthCallback = async () => {
       try {
-        const urlParams = new URLSearchParams(location.search);
-        const code = urlParams.get('code');
-        
-        if (!code) {
-          throw new Error('Authorization code not found');
+        const params = new URLSearchParams(hash.substring(1));
+        const token = params.get('token');
+        const error = params.get('error');
+
+        if (error) {
+          throw new Error(error);
         }
 
-        // Use POST instead of GET with code in request body
-        const response = await api.post('/api/callback', { code });
-
-        if (response.data.token) {
-          localStorage.setItem('token', response.data.token);
-          api.setAuthToken(response.data.token);
-          await loadUser();
-          navigate('/dashboard');
-        } else {
-          throw new Error('Authentication failed - no token received');
+        if (!token) {
+          throw new Error('Authentication token missing');
         }
-      } catch (err: any) {
-        console.error('AuthCallback error:', err);
-        setError(err.response?.data?.error || err.message || 'Authentication failed');
-        setTimeout(() => navigate('/login'), 3000);
+
+        setToken(token);
+        await loadUser();
+        navigate('/dashboard');
+      } catch (err) {
+        navigate('/login', { 
+          state: { 
+            error: err instanceof Error ? err.message : 'Authentication failed' 
+          } 
+        });
       }
     };
 
-    handleCallback();
-  }, [location, navigate, loadUser]);
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-        <div className="p-8 bg-white rounded shadow-md">
-          <h2 className="mb-4 text-xl font-bold text-red-600">Authentication Error</h2>
-          <p className="mb-4">{error}</p>
-          <p>Redirecting to login page...</p>
-        </div>
-      </div>
-    );
-  }
+    handleAuthCallback();
+  }, [hash, navigate, setToken, loadUser]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <div className="p-8 bg-white rounded shadow-md">
-        <h2 className="mb-4 text-xl font-bold">Authentication in progress...</h2>
-        <div className="w-12 h-12 border-t-4 border-b-4 border-blue-500 rounded-full animate-spin"></div>
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Completing authentication...</p>
       </div>
     </div>
   );

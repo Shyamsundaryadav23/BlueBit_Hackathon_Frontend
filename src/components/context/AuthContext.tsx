@@ -1,4 +1,3 @@
-// src/components/context/AuthContext.tsx
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { authReducer } from './authReducer';
 import api from '@/services/api';
@@ -43,13 +42,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const initializeAuth = async () => {
-      if (localStorage.getItem('token')) {
-        try {
+      try {
+        if (localStorage.getItem('token')) {
           await loadUser();
-        } catch (err) {
-          dispatch({ type: 'AUTH_ERROR' });
         }
-      } else {
+      } catch (err) {
+        dispatch({ type: 'AUTH_ERROR' });
+      } finally {
         dispatch({ type: 'SET_LOADING', payload: false });
       }
     };
@@ -59,26 +58,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = () => {
     dispatch({ type: 'SET_LOADING', payload: true });
-    console.log("Redirecting to backend login endpoint...");
-    // Redirect to your backend login endpoint.
     window.location.href = `${import.meta.env.VITE_APP_API_URL}/api/login`;
-
   };
 
   const loadUser = async (): Promise<void> => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const res = await api.get<User>('/api/user');
-      // Log complete user data for debugging
-      console.log("User data from API:", res.data);
-      
-      // Check if the user object has a valid profile picture URL.
-      if (!res.data.picture) {
-        console.warn("User object does not have a 'picture' property. Check API response or property naming.");
-      } else {
-        console.log("User picture URL:", res.data.picture);
-      }
-      
       dispatch({
         type: 'USER_LOADED',
         payload: res.data,
@@ -86,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err: any) {
       dispatch({
         type: 'AUTH_ERROR',
-        payload: err.response?.data?.error || 'Authentication failed',
+        payload: err.response?.data?.error || 'Failed to load user',
       });
       throw err;
     }
@@ -95,29 +81,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     dispatch({ type: 'SET_LOADING', payload: true });
     api.post('/api/logout')
-      .then(() => {
-        dispatch({ type: 'LOGOUT' });
-      })
-      .catch((err) => {
-        console.error('Logout error:', err);
+      .finally(() => {
+        localStorage.removeItem('token');
         dispatch({ type: 'LOGOUT' });
       });
   };
 
-  const clearError = () => {
-    dispatch({ type: 'CLEAR_ERROR' });
-  };
+  const clearError = () => dispatch({ type: 'CLEAR_ERROR' });
 
   return (
-    <AuthContext.Provider
-      value={{
-        state,
-        login,
-        logout,
-        loadUser,
-        clearError,
-      }}
-    >
+    <AuthContext.Provider value={{ state, login, logout, loadUser, clearError }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,4 +1,3 @@
-// src/components/auth/AuthCallback.tsx
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../services/api';
@@ -9,7 +8,6 @@ const AuthCallback: React.FC = () => {
   const location = useLocation();
   const { loadUser } = useAuth();
   const [error, setError] = useState<string | null>(null);
-  // Use a ref to ensure we process the callback only once.
   const processedRef = useRef(false);
 
   useEffect(() => {
@@ -20,30 +18,25 @@ const AuthCallback: React.FC = () => {
       try {
         const urlParams = new URLSearchParams(location.search);
         const code = urlParams.get('code');
-        console.log('Received code:', code);
+        
         if (!code) {
-          setError('Authorization code not found');
-          setTimeout(() => navigate('/login'), 3000);
-          return;
+          throw new Error('Authorization code not found');
         }
 
-        // Call the API with the authorization code
-        const response = await api.get(`/api/callback?code=${encodeURIComponent(code)}`);
-        console.log('Callback response:', response.data);
+        // Use POST instead of GET with code in request body
+        const response = await api.post('/api/callback', { code });
 
         if (response.data.token) {
           localStorage.setItem('token', response.data.token);
-          // Explicitly set the token on the axios instance so it sends the header
           api.setAuthToken(response.data.token);
           await loadUser();
           navigate('/dashboard');
         } else {
-          setError('Authentication failed');
-          setTimeout(() => navigate('/login'), 3000);
+          throw new Error('Authentication failed - no token received');
         }
       } catch (err: any) {
         console.error('AuthCallback error:', err);
-        setError(err.response?.data?.error || 'Authentication process failed');
+        setError(err.response?.data?.error || err.message || 'Authentication failed');
         setTimeout(() => navigate('/login'), 3000);
       }
     };

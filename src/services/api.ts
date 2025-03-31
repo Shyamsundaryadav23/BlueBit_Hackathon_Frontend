@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
 interface CustomAxiosInstance extends AxiosInstance {
   setAuthToken: (token: string) => void;
@@ -10,18 +10,36 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 }) as CustomAxiosInstance;
 
-// Add auth token to requests.
-api.setAuthToken = (token: string) => {
-  if (token) {
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const token = localStorage.getItem('token');
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
+  return config;
+});
+
+api.setAuthToken = (token: string) => {
+  localStorage.setItem('token', token);
+  api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 };
 
-// Remove auth token.
 api.removeAuthToken = () => {
+  localStorage.removeItem('token');
   delete api.defaults.headers.common['Authorization'];
 };
+
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;

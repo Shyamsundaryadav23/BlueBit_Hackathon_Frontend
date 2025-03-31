@@ -15,9 +15,9 @@ export const authReducer = (state: AuthState, action: AuthAction): AuthState => 
         isAuthenticated: true,
         user: action.payload,
         loading: false,
+        error: null,
       };
     case 'AUTH_SUCCESS':
-      localStorage.setItem('token', action.payload.token);
       return {
         ...state,
         isAuthenticated: true,
@@ -27,26 +27,27 @@ export const authReducer = (state: AuthState, action: AuthAction): AuthState => 
         error: null,
       };
     case 'AUTH_ERROR':
-    case 'LOGOUT':
-      localStorage.removeItem('token');
       return {
         ...state,
         token: null,
         isAuthenticated: false,
         user: null,
         loading: false,
-        error: action.payload || null,
+        error: action.payload || 'Authentication failed',
       };
-    case 'SET_LOADING':
+    case 'LOGOUT':
       return {
         ...state,
-        loading: action.payload,
-      };
-    case 'CLEAR_ERROR':
-      return {
-        ...state,
+        token: null,
+        isAuthenticated: false,
+        user: null,
+        loading: false,
         error: null,
       };
+    case 'SET_LOADING':
+      return { ...state, loading: action.payload };
+    case 'CLEAR_ERROR':
+      return { ...state, error: null };
     default:
       return state;
   }

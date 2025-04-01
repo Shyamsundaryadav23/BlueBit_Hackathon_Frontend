@@ -4,49 +4,59 @@ import { useAuth } from '../context/AuthContext';
 
 const AuthCallback: React.FC = () => {
   const navigate = useNavigate();
-  const { hash } = useLocation();
+  const { hash, state: locationState } = useLocation();
   const { setToken, loadUser } = useAuth();
 
   useEffect(() => {
-    // Check if there is a hash in the URL; if not, redirect with an error.
-    if (!hash) {
-      navigate('/login', { state: { error: "Missing authentication parameters." } });
-      return;
-    }
-
     const handleAuthCallback = async () => {
       try {
-        // Remove the '#' if present and then parse the URL parameters
-        const params = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash);
-        const token = params.get('token');
-        const error = params.get('error');
+        if (!hash && !locationState?.token) {
+          throw new Error('Missing authentication parameters');
+        }
 
-        if (error) {
-          throw new Error(error);
+        let token: string | null = null;
+        
+        if (hash) {
+          const params = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash);
+          token = params.get('token');
+          const error = params.get('error');
+          
+          if (error) {
+            throw new Error(error);
+          }
+        }
+        
+        if (!token && locationState?.token) {
+          token = locationState.token;
         }
 
         if (!token) {
           throw new Error('Authentication token missing');
         }
 
-        // Set the token in context and load user details
         setToken(token);
-        await loadUser();
+        const userLoaded = await loadUser();
+        
+        if (!userLoaded) {
+          throw new Error('Failed to load user data');
+        }
 
-        // Redirect the user to the dashboard once authenticated
-        navigate('/dashboard');
+        navigate(locationState?.from?.pathname || '/dashboard', { replace: true });
+        
       } catch (err) {
         console.error("AuthCallback error:", err);
-        navigate('/login', {
+        navigate('/signin', {
+          replace: true,
           state: {
             error: err instanceof Error ? err.message : 'Authentication failed',
+            from: locationState?.from || null
           },
         });
       }
     };
 
     handleAuthCallback();
-  }, [hash, navigate, setToken, loadUser]);
+  }, [hash, navigate, setToken, loadUser, locationState]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">

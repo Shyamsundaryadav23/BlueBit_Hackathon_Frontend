@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useMemo } from 'react';
-import { authReducer } from './authReducer';
 import api from '@/services/api';
 import { AuthState, User } from '@/types/auth.types';
+import { authReducer } from './authReducer';
 
 interface AuthContextProps {
   state: AuthState;
   login: () => void;
   logout: () => void;
-  loadUser: () => Promise<void>;
+  loadUser: () => Promise<boolean>; // Changed to return Promise<boolean>
   setToken: (token: string) => void;
   clearError: () => void;
 }
@@ -29,13 +29,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     api.removeAuthToken();
   }, []);
 
-  const loadUser = useCallback(async () => {
+  const loadUser = useCallback(async (): Promise<boolean> => {
     try {
       const res = await api.get<User>('/api/user');
       dispatch({ type: 'USER_LOADED', payload: res.data });
+      return true; // Success
     } catch (err) {
       logout();
-      throw err;
+      return false; // Failure
     }
   }, [logout]);
 
@@ -46,7 +47,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = useCallback(() => {
     dispatch({ type: 'SET_LOADING', payload: true });
-    // Redirect to the login endpoint of your backend
     window.location.href = `${import.meta.env.VITE_APP_API_URL}/api/login`;
   }, []);
 

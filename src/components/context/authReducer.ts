@@ -1,4 +1,4 @@
-import { AuthState, User } from "@/types/auth.types";
+import { AuthState, User } from '@/types/auth.types';
 
 type AuthAction =
   | { type: 'USER_LOADED'; payload: User }

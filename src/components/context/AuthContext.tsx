@@ -23,7 +23,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     error: null,
   });
 
-  // Memoized loadUser function
+  const logout = useCallback(() => {
+    localStorage.removeItem('token');
+    dispatch({ type: 'LOGOUT' });
+    api.removeAuthToken();
+  }, []);
+
   const loadUser = useCallback(async () => {
     try {
       const res = await api.get<User>('/api/user');
@@ -32,39 +37,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       logout();
       throw err;
     }
-  }, []); // No dependencies, assuming api and dispatch are stable
+  }, [logout]);
 
-  // Memoize logout as well
-  const logout = useCallback(() => {
-    localStorage.removeItem('token');
-    dispatch({ type: 'LOGOUT' });
-    api.removeAuthToken();
-  }, []);
-
-  // Memoize setToken
   const setToken = useCallback((token: string) => {
     localStorage.setItem('token', token);
     dispatch({ type: 'SET_TOKEN', payload: token });
   }, []);
 
-  // Memoize login
   const login = useCallback(() => {
     dispatch({ type: 'SET_LOADING', payload: true });
-    // Redirect to backend login endpoint.
+    // Redirect to the login endpoint of your backend
     window.location.href = `${import.meta.env.VITE_APP_API_URL}/api/login`;
   }, []);
 
-  // Memoize clearError
   const clearError = useCallback(() => dispatch({ type: 'CLEAR_ERROR' }), []);
 
-  // Run initializeAuth only when token changes and user is not loaded yet
   useEffect(() => {
     const initializeAuth = async () => {
       if (state.token && !state.user) {
         try {
           await loadUser();
         } catch (err) {
-          // error already handled in loadUser
+          // Error already handled in loadUser
         } finally {
           dispatch({ type: 'SET_LOADING', payload: false });
         }
@@ -75,7 +69,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initializeAuth();
   }, [state.token, state.user, loadUser]);
 
-  // Memoize the value provided by the context
   const value = useMemo(
     () => ({
       state,

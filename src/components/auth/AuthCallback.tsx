@@ -26,10 +26,10 @@ const AuthCallback: React.FC = () => {
         await loadUser();
         navigate('/dashboard');
       } catch (err) {
-        navigate('/login', { 
-          state: { 
-            error: err instanceof Error ? err.message : 'Authentication failed' 
-          } 
+        navigate('/login', {
+          state: {
+            error: err instanceof Error ? err.message : 'Authentication failed',
+          },
         });
       }
     };

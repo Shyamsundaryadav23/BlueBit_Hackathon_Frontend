@@ -8,9 +8,16 @@ const AuthCallback: React.FC = () => {
   const { setToken, loadUser } = useAuth();
 
   useEffect(() => {
+    // Check if there is a hash in the URL; if not, redirect with an error.
+    if (!hash) {
+      navigate('/login', { state: { error: "Missing authentication parameters." } });
+      return;
+    }
+
     const handleAuthCallback = async () => {
       try {
-        const params = new URLSearchParams(hash.substring(1));
+        // Remove the '#' if present and then parse the URL parameters
+        const params = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash);
         const token = params.get('token');
         const error = params.get('error');
 
@@ -22,10 +29,14 @@ const AuthCallback: React.FC = () => {
           throw new Error('Authentication token missing');
         }
 
+        // Set the token in context and load user details
         setToken(token);
         await loadUser();
+
+        // Redirect the user to the dashboard once authenticated
         navigate('/dashboard');
       } catch (err) {
+        console.error("AuthCallback error:", err);
         navigate('/login', {
           state: {
             error: err instanceof Error ? err.message : 'Authentication failed',
